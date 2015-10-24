@@ -2889,23 +2889,7 @@ namespace ts {
 
                 // JSX overrides
                 if (sourceFile.languageVariant === LanguageVariant.JSX) {
-                    let isArrowFunctionInJsx = lookAhead(() => {
-                        let third = nextToken();
-                        if (third === SyntaxKind.ExtendsKeyword) {
-                            let fourth = nextToken();
-                            switch (fourth) {
-                                case SyntaxKind.EqualsToken:
-                                case SyntaxKind.GreaterThanToken:
-                                    return false;
-                                default:
-                                    return true;
-                            }
-                        }
-                        else if (third === SyntaxKind.CommaToken) {
-                            return true;
-                        }
-                        return false;
-                    });
+                    let isArrowFunctionInJsx = lookAhead(isArrowFunctionInJsxLookahead);
 
                     if (isArrowFunctionInJsx) {
                         return Tristate.True;
@@ -2917,6 +2901,24 @@ namespace ts {
                 // This *could* be a parenthesized arrow function.
                 return Tristate.Unknown;
             }
+        }
+
+        function isArrowFunctionInJsxLookahead(): boolean {
+            let third = nextToken();
+            if (third === SyntaxKind.ExtendsKeyword) {
+                let fourth = nextToken();
+                switch (fourth) {
+                    case SyntaxKind.EqualsToken:
+                    case SyntaxKind.GreaterThanToken:
+                        return false;
+                    default:
+                        return true;
+                }
+            }
+            else if (third === SyntaxKind.CommaToken) {
+                return true;
+            }
+            return false;
         }
 
         function parsePossibleParenthesizedArrowFunctionExpressionHead(): ArrowFunction {
@@ -3448,6 +3450,10 @@ namespace ts {
             return finishNode(node);
         }
 
+        function parseJsxElementOrSelfClosingElementInExpressionContext(): JsxElement | JsxSelfClosingElement {
+            return parseJsxElementOrSelfClosingElement(true);
+        }
+
         function parseJsxElementOrSelfClosingElement(inExpressionContext: boolean): JsxElement | JsxSelfClosingElement {
             let opening = parseJsxOpeningOrSelfClosingElement(inExpressionContext);
             let result: JsxElement | JsxSelfClosingElement;
@@ -3473,7 +3479,7 @@ namespace ts {
             // Since JSX elements are invalid < operands anyway, this lookahead parse will only occur in error scenarios
             // of one sort or another.
             if (inExpressionContext && token === SyntaxKind.LessThanToken) {
-                let invalidElement = tryParse(() => parseJsxElementOrSelfClosingElement(/*inExpressionContext*/true));
+                let invalidElement = tryParse(parseJsxElementOrSelfClosingElementInExpressionContext);
                 if (invalidElement) {
                     parseErrorAtCurrentToken(Diagnostics.JSX_expressions_must_have_one_parent_element);
                     let badNode = <BinaryExpression>createNode(SyntaxKind.BinaryExpression, result.pos);
@@ -5440,14 +5446,18 @@ namespace ts {
         }
 
         function setExternalModuleIndicator(sourceFile: SourceFile) {
-            sourceFile.externalModuleIndicator = forEach(sourceFile.statements, node =>
-                node.flags & NodeFlags.Export
+            for (const node of sourceFile.statements) {
+                const isIndicator =
+                    node.flags & NodeFlags.Export
                     || node.kind === SyntaxKind.ImportEqualsDeclaration && (<ImportEqualsDeclaration>node).moduleReference.kind === SyntaxKind.ExternalModuleReference
                     || node.kind === SyntaxKind.ImportDeclaration
                     || node.kind === SyntaxKind.ExportAssignment
-                    || node.kind === SyntaxKind.ExportDeclaration
-                    ? node
-                    : undefined);
+                    || node.kind === SyntaxKind.ExportDeclaration;
+                if (isIndicator) {
+                    sourceFile.externalModuleIndicator = node;
+                    break;
+                }
+            }
         }
 
         const enum ParsingContext {

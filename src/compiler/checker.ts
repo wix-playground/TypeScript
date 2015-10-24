@@ -294,9 +294,9 @@ namespace ts {
                 }
                 target.flags |= source.flags;
                 if (!target.valueDeclaration && source.valueDeclaration) target.valueDeclaration = source.valueDeclaration;
-                forEach(source.declarations, node => {
+                for (const node of source.declarations) {
                     target.declarations.push(node);
-                });
+                }
                 if (source.members) {
                     if (!target.members) target.members = {};
                     mergeSymbolTable(target.members, source.members);
@@ -310,12 +310,13 @@ namespace ts {
             else {
                 let message = target.flags & SymbolFlags.BlockScopedVariable || source.flags & SymbolFlags.BlockScopedVariable
                     ? Diagnostics.Cannot_redeclare_block_scoped_variable_0 : Diagnostics.Duplicate_identifier_0;
-                forEach(source.declarations, node => {
+                for (const node of source.declarations) {
                     error(node.name ? node.name : node, message, symbolToString(source));
-                });
-                forEach(target.declarations, node => {
+                }
+
+                for (const node of target.declarations) {
                     error(node.name ? node.name : node, message, symbolToString(source));
-                });
+                }
             }
         }
 
@@ -675,7 +676,14 @@ namespace ts {
         function checkResolvedBlockScopedVariable(result: Symbol, errorLocation: Node): void {
             Debug.assert((result.flags & SymbolFlags.BlockScopedVariable) !== 0);
             // Block-scoped variables cannot be used before their definition
-            let declaration = forEach(result.declarations, d => isBlockOrCatchScoped(d) ? d : undefined);
+            let declaration: Declaration;
+
+            for (const d of result.declarations) {
+                if (isBlockOrCatchScoped(d)) {
+                    declaration = d;
+                    break;
+                }
+            }
 
             Debug.assert(declaration !== undefined, "Block-scoped variable declaration is undefined");
 
@@ -714,7 +722,11 @@ namespace ts {
         }
 
         function getDeclarationOfAliasSymbol(symbol: Symbol): Declaration {
-            return forEach(symbol.declarations, d => isAliasSymbolDeclaration(d) ? d : undefined);
+            for (const d of symbol.declarations) {
+                if (isAliasSymbolDeclaration(d)) {
+                    return d;
+                }
+            }
         }
 
         function getTargetOfImportEqualsDeclaration(node: ImportEqualsDeclaration): Symbol {
@@ -2315,7 +2327,11 @@ namespace ts {
             // the type of which is an instantiation of the class type with type Any supplied as a type argument for each type parameter.
             // It is an error to explicitly declare a static property member with the name 'prototype'.
             let classType = <InterfaceType>getDeclaredTypeOfSymbol(prototype.parent);
-            return classType.typeParameters ? createTypeReference(<GenericType>classType, map(classType.typeParameters, _ => anyType)) : classType;
+            return classType.typeParameters ? createTypeReference(<GenericType>classType, map(classType.typeParameters, mapToAny)) : classType;
+        }
+
+        function mapToAny(t: TypeParameter): Type {
+            return anyType;
         }
 
         // Return the type of the given property in the given type, or undefined if no such property exists
@@ -2471,14 +2487,14 @@ namespace ts {
         // Return the type implied by an object binding pattern
         function getTypeFromObjectBindingPattern(pattern: BindingPattern, includePatternInType: boolean): Type {
             let members: SymbolTable = {};
-            forEach(pattern.elements, e => {
+            for (const e of pattern.elements) {
                 let flags = SymbolFlags.Property | SymbolFlags.Transient | (e.initializer ? SymbolFlags.Optional : 0);
                 let name = e.propertyName || <Identifier>e.name;
                 let symbol = <TransientSymbol>createSymbol(flags, name.text);
                 symbol.type = getTypeFromBindingElement(e, includePatternInType);
                 symbol.bindingElement = e;
                 members[symbol.name] = symbol;
-            });
+            }
             let result = createAnonymousType(undefined, members, emptyArray, emptyArray, undefined, undefined);
             if (includePatternInType) {
                 result.pattern = pattern;
@@ -2846,7 +2862,11 @@ namespace ts {
         }
 
         function hasClassBaseType(type: InterfaceType): boolean {
-            return !!forEach(getBaseTypes(type), t => !!(t.symbol.flags & SymbolFlags.Class));
+            for (const t of getBaseTypes(type)) {
+                if (t.symbol.flags & SymbolFlags.Class) {
+                    return true;
+                }
+            }
         }
 
         function getBaseTypes(type: InterfaceType): ObjectType[] {
@@ -3692,12 +3712,12 @@ namespace ts {
         // type checking functions).
         function getTypeParametersFromDeclaration(typeParameterDeclarations: TypeParameterDeclaration[]): TypeParameter[] {
             let result: TypeParameter[] = [];
-            forEach(typeParameterDeclarations, node => {
+            for (const node of typeParameterDeclarations) {
                 let tp = getDeclaredTypeOfTypeParameter(node.symbol);
                 if (!contains(result, tp)) {
                     result.push(tp);
                 }
-            });
+            }
             return result;
         }
 
@@ -4006,7 +4026,13 @@ namespace ts {
             // bubble up to the declaration
             let currentNode: Node = typeReferenceNode;
             // forEach === exists
-            while (!forEach(typeParameterSymbol.declarations, d => d.parent === currentNode.parent)) {
+            exit:
+            while (true) {
+                for (const d of typeParameterSymbol.declarations) {
+                    if (d.parent === currentNode.parent) {
+                        break exit;
+                    }
+                }
                 currentNode = currentNode.parent;
             }
             // if last step was made from the type parameter this means that path has started somewhere in constraint which is illegal
@@ -4030,7 +4056,13 @@ namespace ts {
                             // -> typeParameter and symbol.declaration originate from the same type parameter list
                             // -> illegal for all declarations in symbol
                             // forEach === exists
-                            links.isIllegalTypeReferenceInConstraint = forEach(symbol.declarations, d => d.parent === typeParameter.parent);
+                            links.isIllegalTypeReferenceInConstraint = false;
+                            for (const d of symbol.declarations) {
+                                if (d.parent === typeParameter.parent) {
+                                    links.isIllegalTypeReferenceInConstraint = true;
+                                    break;
+                                }
+                            }
                         }
                     }
                     if (links.isIllegalTypeReferenceInConstraint) {
@@ -4702,7 +4734,15 @@ namespace ts {
         }
 
         function isContextSensitiveFunctionLikeDeclaration(node: FunctionLikeDeclaration) {
-            return !node.typeParameters && node.parameters.length && !forEach(node.parameters, p => p.type);
+            if (!node.typeParameters && node.parameters.length) {
+                for (const p of node.parameters) {
+                    if (p.type) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
         }
 
         function getTypeWithoutSignatures(type: Type): Type {
@@ -5664,7 +5704,11 @@ namespace ts {
         }
 
         function getCommonSupertype(types: Type[]): Type {
-            return forEach(types, t => isSupertypeOfEach(t, types) ? t : undefined);
+            for (const t of types) {
+                if (isSupertypeOfEach(t, types)) {
+                    return t;
+                }
+            }
         }
 
         function reportNoCommonSupertypeError(types: Type[], errorLocation: Node, errorMessageChainHead: DiagnosticMessageChain): void {
@@ -5751,7 +5795,7 @@ namespace ts {
         function getWidenedTypeOfObjectLiteral(type: Type): Type {
             let properties = getPropertiesOfObjectType(type);
             let members: SymbolTable = {};
-            forEach(properties, p => {
+            for (let p of properties) {
                 let propType = getTypeOfSymbol(p);
                 let widenedType = getWidenedType(propType);
                 if (propType !== widenedType) {
@@ -5764,7 +5808,7 @@ namespace ts {
                     p = symbol;
                 }
                 members[p.name] = p;
-            });
+            }
             let stringIndexType = getIndexTypeOfType(type, IndexKind.String);
             let numberIndexType = getIndexTypeOfType(type, IndexKind.Number);
             if (stringIndexType) stringIndexType = getWidenedType(stringIndexType);
@@ -6182,7 +6226,14 @@ namespace ts {
         function removeTypesFromUnionType(type: Type, typeKind: TypeFlags, isOfTypeKind: boolean, allowEmptyUnionResult: boolean): Type {
             if (type.flags & TypeFlags.Union) {
                 let types = (<UnionType>type).types;
-                if (forEach(types, t => !!(t.flags & typeKind) === isOfTypeKind)) {
+                let shouldRemove = false;
+                for (const t of types) {
+                    if (!!(t.flags & typeKind) === isOfTypeKind) {
+                        shouldRemove = true;
+                        break;
+                    }
+                }
+                if (shouldRemove) {
                     // Above we checked if we have anything to remove, now use the opposite test to do the removal
                     let narrowedType = getUnionType(filter(types, t => !(t.flags & typeKind) === isOfTypeKind));
                     if (allowEmptyUnionResult || narrowedType !== emptyObjectType) {
@@ -6991,7 +7042,16 @@ namespace ts {
 
         // Return true if the given contextual type provides an index signature of the given kind
         function contextualTypeHasIndexSignature(type: Type, kind: IndexKind): boolean {
-            return !!(type.flags & TypeFlags.Union ? forEach((<UnionType>type).types, t => getIndexTypeOfStructuredType(t, kind)) : getIndexTypeOfStructuredType(type, kind));
+            if (type.flags & TypeFlags.Union) {
+                for (const t of (<UnionType>type).types) {
+                    if (getIndexTypeOfStructuredType(t, kind)) {
+                        return true;
+                    }
+                }
+            }
+            else {
+                return !!getIndexTypeOfStructuredType(type, kind);
+            }
         }
 
         // In an object literal contextually typed by a type T, the contextual type of a property assignment is the type of
@@ -8267,9 +8327,9 @@ namespace ts {
                 checkExpression((<TaggedTemplateExpression>node).template);
             }
             else if (node.kind !== SyntaxKind.Decorator) {
-                forEach((<CallExpression>node).arguments, argument => {
+                for (const argument of (<CallExpression>node).arguments) {
                     checkExpression(argument);
-                });
+                }
             }
             return anySignature;
         }
@@ -8589,9 +8649,9 @@ namespace ts {
                 let template = (<TaggedTemplateExpression>node).template;
                 args = [undefined];
                 if (template.kind === SyntaxKind.TemplateExpression) {
-                    forEach((<TemplateExpression>template).templateSpans, span => {
+                    for (const span of (<TemplateExpression>template).templateSpans) {
                         args.push(span.expression);
-                    });
+                    }
                 }
             }
             else if (node.kind === SyntaxKind.Decorator) {
@@ -10369,9 +10429,9 @@ namespace ts {
             // It is worth asking whether this is what we really want though.
             // A place where we actually *are* concerned with the expressions' types are
             // in tagged templates.
-            forEach((<TemplateExpression>node).templateSpans, templateSpan => {
+            for (const templateSpan of (<TemplateExpression>node).templateSpans) {
                 checkExpression(templateSpan.expression);
-            });
+            }
 
             return stringType;
         }
@@ -10895,9 +10955,15 @@ namespace ts {
                     // - The containing class is a derived class.
                     // - The constructor declares parameter properties
                     //   or the containing class declares instance member variables with initializers.
-                    let superCallShouldBeFirst =
-                        forEach((<ClassDeclaration>node.parent).members, isInstancePropertyWithInitializer) ||
-                        forEach(node.parameters, p => p.flags & (NodeFlags.Public | NodeFlags.Private | NodeFlags.Protected));
+                    let superCallShouldBeFirst = forEach((<ClassDeclaration>node.parent).members, isInstancePropertyWithInitializer);
+                    if (!superCallShouldBeFirst) {
+                        for (const p of node.parameters) {
+                            if (p.flags & (NodeFlags.Public | NodeFlags.Private | NodeFlags.Protected)) {
+                                superCallShouldBeFirst = true;
+                                break;
+                            }
+                        }
+                    }
 
                     // Skip past any prologue directives to find the first statement
                     // to ensure that it was a super call.
@@ -11114,7 +11180,7 @@ namespace ts {
                 if (someButNotAllOverloadFlags !== 0) {
                     let canonicalFlags = getEffectiveDeclarationFlags(getCanonicalOverload(overloads, implementation), flagsToCheck);
 
-                    forEach(overloads, o => {
+                    for (const o of overloads) {
                         let deviation = getEffectiveDeclarationFlags(o, flagsToCheck) ^ canonicalFlags;
                         if (deviation & NodeFlags.Export) {
                             error(o.name, Diagnostics.Overload_signatures_must_all_be_exported_or_not_exported);
@@ -11128,19 +11194,19 @@ namespace ts {
                         else if (deviation & NodeFlags.Abstract) {
                             error(o.name, Diagnostics.Overload_signatures_must_all_be_abstract_or_not_abstract);
                         }
-                    });
+                    }
                 }
             }
 
             function checkQuestionTokenAgreementBetweenOverloads(overloads: Declaration[], implementation: FunctionLikeDeclaration, someHaveQuestionToken: boolean, allHaveQuestionToken: boolean): void {
                 if (someHaveQuestionToken !== allHaveQuestionToken) {
                     let canonicalHasQuestionToken = hasQuestionToken(getCanonicalOverload(overloads, implementation));
-                    forEach(overloads, o => {
+                    for (const o of overloads) {
                         let deviation = hasQuestionToken(o) !== canonicalHasQuestionToken;
                         if (deviation) {
                             error(o.name, Diagnostics.Overload_signatures_must_all_be_optional_or_required);
                         }
-                    });
+                    }
                 }
             }
 
@@ -11262,15 +11328,15 @@ namespace ts {
             }
 
             if (multipleConstructorImplementation) {
-                forEach(declarations, declaration => {
+                for (const declaration of declarations) {
                     error(declaration, Diagnostics.Multiple_constructor_implementations_are_not_allowed);
-                });
+                }
             }
 
             if (duplicateFunctionDeclaration) {
-                forEach(declarations, declaration => {
+                for (const declaration of declarations) {
                     error(declaration.name, Diagnostics.Duplicate_function_implementation);
-                });
+                }
             }
 
             // Abstract methods can't have an implementation -- in particular, they don't need one.
@@ -11393,7 +11459,9 @@ namespace ts {
                     case SyntaxKind.ImportEqualsDeclaration:
                         let result: SymbolFlags = 0;
                         let target = resolveAlias(getSymbolOfNode(d));
-                        forEach(target.declarations, d => { result |= getDeclarationSpaces(d); });
+                        for (const d of target.declarations) {
+                            result |= getDeclarationSpaces(d);
+                        }
                         return result;
                     default:
                         return SymbolFlags.ExportValue;
@@ -11900,11 +11968,11 @@ namespace ts {
                 return;
             }
 
-            forEach(node.parameters, p => {
+            for (const p of node.parameters) {
                 if (p.name && !isBindingPattern(p.name) && (<Identifier>p.name).text === argumentsSymbol.name) {
                     error(p, Diagnostics.Duplicate_identifier_arguments_Compiler_uses_arguments_to_initialize_rest_parameters);
                 }
-            });
+            }
         }
 
         function needCollisionCheckForIdentifier(node: Node, identifier: Identifier, name: string): boolean {
@@ -12672,7 +12740,7 @@ namespace ts {
             let hasDuplicateDefaultClause = false;
 
             let expressionType = checkExpression(node.expression);
-            forEach(node.caseBlock.clauses, clause => {
+            for (const clause of node.caseBlock.clauses) {
                 // Grammar check for duplicate default clauses, skip if we already report duplicate default clause
                 if (clause.kind === SyntaxKind.DefaultClause && !hasDuplicateDefaultClause) {
                     if (firstDefaultClause === undefined) {
@@ -12698,7 +12766,7 @@ namespace ts {
                     }
                 }
                 forEach(clause.statements, checkSourceElement);
-            });
+            }
         }
 
         function checkLabeledStatement(node: LabeledStatement) {
@@ -12781,11 +12849,11 @@ namespace ts {
             let numberIndexType = getIndexTypeOfType(type, IndexKind.Number);
 
             if (stringIndexType || numberIndexType) {
-                forEach(getPropertiesOfObjectType(type), prop => {
+                for (const prop of getPropertiesOfObjectType(type)) {
                     let propType = getTypeOfSymbol(prop);
                     checkIndexConstraintForProperty(prop, propType, type, declaredStringIndexer, stringIndexType, IndexKind.String);
                     checkIndexConstraintForProperty(prop, propType, type, declaredNumberIndexer, numberIndexType, IndexKind.Number);
-                });
+                }
 
                 if (type.flags & TypeFlags.Class && isClassLike(type.symbol.valueDeclaration)) {
                     let classDeclaration = <ClassLikeDeclaration>type.symbol.valueDeclaration;
@@ -12807,7 +12875,13 @@ namespace ts {
                 errorNode = declaredNumberIndexer || declaredStringIndexer;
                 // condition 'errorNode === undefined' may appear if types does not declare nor string neither number indexer
                 if (!errorNode && (type.flags & TypeFlags.Interface)) {
-                    let someBaseTypeHasBothIndexers = forEach(getBaseTypes(<InterfaceType>type), base => getIndexTypeOfType(base, IndexKind.String) && getIndexTypeOfType(base, IndexKind.Number));
+                    let someBaseTypeHasBothIndexers: boolean;
+                    for (const base of getBaseTypes(<InterfaceType>type)) {
+                        if (getIndexTypeOfType(base, IndexKind.String) && getIndexTypeOfType(base, IndexKind.Number)) {
+                            someBaseTypeHasBothIndexers = true;
+                            break;
+                        }
+                    }
                     errorNode = someBaseTypeHasBothIndexers ? undefined : type.symbol.declarations[0];
                 }
             }
@@ -12847,7 +12921,13 @@ namespace ts {
                     // for interfaces property and indexer might be inherited from different bases
                     // check if any base class already has both property and indexer.
                     // check should be performed only if 'type' is the first type that brings property\indexer together
-                    let someBaseClassHasBothPropertyAndIndexer = forEach(getBaseTypes(<InterfaceType>containingType), base => getPropertyOfObjectType(base, prop.name) && getIndexTypeOfType(base, indexKind));
+                    let someBaseClassHasBothPropertyAndIndexer: boolean;
+                    for (const base of getBaseTypes(<InterfaceType>containingType)) {
+                        if (getPropertyOfObjectType(base, prop.name) && getIndexTypeOfType(base, indexKind)) {
+                            someBaseClassHasBothPropertyAndIndexer = true;
+                            break;
+                        }
+                    }
                     errorNode = someBaseClassHasBothPropertyAndIndexer ? undefined : containingType.symbol.declarations[0];
                 }
 
@@ -12948,8 +13028,11 @@ namespace ts {
                         // references (as opposed to checking the structure of the types) because elsewhere we have already checked
                         // that the base type is a class or interface type (and not, for example, an anonymous object type).
                         let constructors = getInstantiatedConstructorsForTypeArguments(staticBaseType, baseTypeNode.typeArguments);
-                        if (forEach(constructors, sig => getReturnTypeOfSignature(sig) !== baseType)) {
-                            error(baseTypeNode.expression, Diagnostics.Base_constructors_must_all_have_the_same_return_type);
+                        for (const sig of constructors) {
+                            if (getReturnTypeOfSignature(sig) !== baseType) {
+                                error(baseTypeNode.expression, Diagnostics.Base_constructors_must_all_have_the_same_return_type);
+                                break;
+                            }
                         }
                     }
                     checkKindsOfPropertyMemberOverrides(type, baseType);
@@ -12991,7 +13074,11 @@ namespace ts {
         }
 
         function getClassLikeDeclarationOfSymbol(symbol: Symbol): Declaration {
-            return forEach(symbol.declarations, d => isClassLike(d) ? d : undefined);
+            for (const d of symbol.declarations) {
+                if (isClassLike(d)) {
+                    return d;
+                }
+            }
         }
 
         function checkKindsOfPropertyMemberOverrides(type: InterfaceType, baseType: ObjectType): void {
@@ -13131,7 +13218,9 @@ namespace ts {
             }
 
             let seen: Map<{ prop: Symbol; containingType: Type }> = {};
-            forEach(resolveDeclaredMembers(type).declaredProperties, p => { seen[p.name] = { prop: p, containingType: type }; });
+            for (const p of resolveDeclaredMembers(type).declaredProperties) {
+                seen[p.name] = { prop: p, containingType: type };
+            }
             let ok = true;
 
             for (let base of baseTypes) {
@@ -13190,12 +13279,15 @@ namespace ts {
                     }
                 }
             }
-            forEach(getInterfaceBaseTypeNodes(node), heritageElement => {
-                if (!isSupportedExpressionWithTypeArguments(heritageElement)) {
-                    error(heritageElement.expression, Diagnostics.An_interface_can_only_extend_an_identifier_Slashqualified_name_with_optional_type_arguments);
+            const heritageClauses = getInterfaceBaseTypeNodes(node);
+            if (heritageClauses) {
+                for (const heritageElement of getInterfaceBaseTypeNodes(node)) {
+                    if (!isSupportedExpressionWithTypeArguments(heritageElement)) {
+                        error(heritageElement.expression, Diagnostics.An_interface_can_only_extend_an_identifier_Slashqualified_name_with_optional_type_arguments);
+                    }
+                    checkTypeReferenceNode(heritageElement);
                 }
-                checkTypeReferenceNode(heritageElement);
-            });
+            }
 
             forEach(node.members, checkSourceElement);
 
@@ -13437,23 +13529,23 @@ namespace ts {
             if (node === firstDeclaration) {
                 if (enumSymbol.declarations.length > 1) {
                     // check that const is placed\omitted on all enum declarations
-                    forEach(enumSymbol.declarations, decl => {
+                    for (const decl of enumSymbol.declarations) {
                         if (isConstEnumDeclaration(decl) !== enumIsConst) {
                             error(decl.name, Diagnostics.Enum_declarations_must_all_be_const_or_non_const);
                         }
-                    });
+                    }
                 }
 
                 let seenEnumMissingInitialInitializer = false;
-                forEach(enumSymbol.declarations, declaration => {
+                for (const declaration of enumSymbol.declarations) {
                     // return true if we hit a violation of the rule, false otherwise
                     if (declaration.kind !== SyntaxKind.EnumDeclaration) {
-                        return false;
+                        continue;
                     }
 
                     let enumDeclaration = <EnumDeclaration>declaration;
                     if (!enumDeclaration.members.length) {
-                        return false;
+                        continue;
                     }
 
                     let firstEnumMember = enumDeclaration.members[0];
@@ -13465,7 +13557,7 @@ namespace ts {
                             seenEnumMissingInitialInitializer = true;
                         }
                     }
-                });
+                }
             }
         }
 
@@ -14548,11 +14640,11 @@ namespace ts {
             type = getApparentType(type);
             let propsByName = createSymbolTable(getPropertiesOfType(type));
             if (getSignaturesOfType(type, SignatureKind.Call).length || getSignaturesOfType(type, SignatureKind.Construct).length) {
-                forEach(getPropertiesOfType(globalFunctionType), p => {
+                for (const p of getPropertiesOfType(globalFunctionType)) {
                     if (!hasProperty(propsByName, p.name)) {
                         propsByName[p.name] = p;
                     }
-                });
+                };
             }
             return getNamedMembers(propsByName);
         }
@@ -14561,12 +14653,12 @@ namespace ts {
             if (symbol.flags & SymbolFlags.SyntheticProperty) {
                 let symbols: Symbol[] = [];
                 let name = symbol.name;
-                forEach(getSymbolLinks(symbol).containingType.types, t => {
+                for (const t of getSymbolLinks(symbol).containingType.types) {
                     let symbol = getPropertyOfType(t, name);
                     if (symbol) {
                         symbols.push(symbol);
                     }
-                });
+                }
                 return symbols;
             }
             else if (symbol.flags & SymbolFlags.Transient) {
@@ -14890,16 +14982,16 @@ namespace ts {
 
         function initializeTypeChecker() {
             // Bind all source files and propagate errors
-            forEach(host.getSourceFiles(), file => {
+            for (const file of host.getSourceFiles()) {
                 bindSourceFile(file);
-            });
+            }
 
             // Initialize global symbol table
-            forEach(host.getSourceFiles(), file => {
+            for (const file of host.getSourceFiles()) {
                 if (!isExternalModule(file)) {
                     mergeSymbolTable(globals, file.locals);
                 }
-            });
+            }
 
             // Initialize special symbols
             getSymbolLinks(undefinedSymbol).type = undefinedType;

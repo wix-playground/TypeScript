@@ -164,21 +164,22 @@ namespace ts {
         let referencedSourceFile: string;
         while (true) {
             searchName = normalizePath(combinePaths(searchPath, moduleName));
-            referencedSourceFile = forEach(supportedExtensions, extension => {
+            for (const extension of supportedExtensions) {
                 if (extension === ".tsx" && !compilerOptions.jsx) {
                     // resolve .tsx files only if jsx support is enabled 
                     // 'logical not' handles both undefined and None cases
-                    return undefined;
+                    continue;
                 }
 
                 let candidate = searchName + extension;
                 if (host.fileExists(candidate)) {
-                    return candidate;
+                    referencedSourceFile = candidate;
+                    break;
                 }
                 else {
                     failedLookupLocations.push(candidate);
                 }
-            });
+            }
 
             if (referencedSourceFile) {
                 break;
