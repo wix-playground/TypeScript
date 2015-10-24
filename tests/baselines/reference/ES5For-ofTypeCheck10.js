@@ -15,7 +15,7 @@ class StringIterator {
 }
 
 //// [ES5For-ofTypeCheck10.js]
-for (var _i = 0, _a = new StringIterator; _i < _a.length; _i++) {
+for (var _i = 0, _a = new StringIterator, _b = _a ? _a.length : 0; _i < _b; _i++) {
     var v = _a[_i];
 }
 // In ES3/5, you cannot for...of over an arbitrary iterable.

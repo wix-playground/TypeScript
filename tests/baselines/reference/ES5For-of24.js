@@ -6,7 +6,7 @@ for (var v of a) {
 
 //// [ES5For-of24.js]
 var a = [1, 2, 3];
-for (var _i = 0; _i < a.length; _i++) {
+for (var _i = 0, _a = a ? a.length : 0; _i < _a; _i++) {
     var v = a[_i];
     var a_1 = 0;
 }

@@ -117,7 +117,7 @@ for (var x_11 in []) {
 for (var x_12 in []) {
     use(x_12);
 }
-for (var _i = 0, _a = []; _i < _a.length; _i++) {
+for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
     var x_13 = _a[_i];
     use(x_13);
 }

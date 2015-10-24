@@ -4,7 +4,7 @@ for (var v of ['a', 'b', 'c']) {
 }
 
 //// [ES5For-of1.js]
-for (var _i = 0, _a = ['a', 'b', 'c']; _i < _a.length; _i++) {
+for (var _i = 0, _a = ['a', 'b', 'c'], _b = _a ? _a.length : 0; _i < _b; _i++) {
     var v = _a[_i];
     console.log(v);
 }

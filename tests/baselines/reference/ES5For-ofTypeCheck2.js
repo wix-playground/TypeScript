@@ -2,6 +2,6 @@
 for (var v of [true]) { }
 
 //// [ES5For-ofTypeCheck2.js]
-for (var _i = 0, _a = [true]; _i < _a.length; _i++) {
+for (var _i = 0, _a = [true], _b = _a ? _a.length : 0; _i < _b; _i++) {
     var v = _a[_i];
 }

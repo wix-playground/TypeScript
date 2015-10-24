@@ -3191,7 +3191,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, Promi
                     emitNodeWithoutSourceMap(node.expression);
                     emitEnd(node.expression);
                 }
-
+                let cachedLengthVariable = createTempVariable(TempFlags.Auto);
+                write(", ");
+                emitNodeWithoutSourceMap(cachedLengthVariable);
+                write(" = ");
+                emitNodeWithoutSourceMap(rhsReference);
+                write(" ? ");
+                emitNodeWithoutSourceMap(rhsReference);
+                write(".length : 0");
                 write("; ");
 
                 // _i < _a.length;
@@ -3199,8 +3206,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, Promi
                 emitNodeWithoutSourceMap(counter);
                 write(" < ");
 
-                emitNodeWithCommentsAndWithoutSourcemap(rhsReference);
-                write(".length");
+                emitNodeWithCommentsAndWithoutSourcemap(cachedLengthVariable);
 
                 emitEnd(node.initializer);
                 write("; ");

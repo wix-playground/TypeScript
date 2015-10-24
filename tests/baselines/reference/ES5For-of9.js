@@ -12,10 +12,10 @@ for (foo().x of []) {
 function foo() {
     return { x: 0 };
 }
-for (var _i = 0, _a = []; _i < _a.length; _i++) {
+for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
     foo().x = _a[_i];
-    for (var _b = 0, _c = []; _b < _c.length; _b++) {
-        foo().x = _c[_b];
+    for (var _c = 0, _d = [], _e = _d ? _d.length : 0; _c < _e; _c++) {
+        foo().x = _d[_c];
         var p = foo().x;
     }
 }

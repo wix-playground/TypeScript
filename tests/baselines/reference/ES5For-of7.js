@@ -8,11 +8,11 @@ for (var v of []) {
 }
 
 //// [ES5For-of7.js]
-for (var _i = 0, _a = []; _i < _a.length; _i++) {
+for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
     var w = _a[_i];
     var x = w;
 }
-for (var _b = 0, _c = []; _b < _c.length; _b++) {
-    var v = _c[_b];
+for (var _c = 0, _d = [], _e = _d ? _d.length : 0; _c < _e; _c++) {
+    var v = _d[_c];
     var x = [w, v];
 }

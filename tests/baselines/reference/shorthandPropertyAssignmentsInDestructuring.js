@@ -120,59 +120,59 @@ function foo({a = 4, b = { x: 5 }}) {
 //// [shorthandPropertyAssignmentsInDestructuring.js]
 (function () {
     var s0;
-    for (var _i = 0, _a = [{ s0: 1 }]; _i < _a.length; _i++) {
-        _b = _a[_i].s0, s0 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{ s0: 1 }], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s0, s0 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s0;
-    for (var _i = 0, _a = [{ s0: 1 }]; _i < _a.length; _i++) {
-        _b = _a[_i].s0, s0 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{ s0: 1 }], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s0, s0 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s1;
-    for (var _i = 0, _a = [{}]; _i < _a.length; _i++) {
-        _b = _a[_i].s1, s1 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{}], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s1, s1 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s1;
-    for (var _i = 0, _a = [{}]; _i < _a.length; _i++) {
-        _b = _a[_i].s1, s1 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{}], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s1, s1 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s2;
-    for (var _i = 0, _a = [{ s2: "" }]; _i < _a.length; _i++) {
-        _b = _a[_i].s2, s2 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{ s2: "" }], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s2, s2 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s2;
-    for (var _i = 0, _a = [{ s2: "" }]; _i < _a.length; _i++) {
-        _b = _a[_i].s2, s2 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{ s2: "" }], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s2, s2 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s3;
-    for (var _i = 0, _a = [{ s3: "" }]; _i < _a.length; _i++) {
-        _b = _a[_i].s3, s3 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{ s3: "" }], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s3, s3 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var s3;
-    for (var _i = 0, _a = [{ s3: "" }]; _i < _a.length; _i++) {
-        _b = _a[_i].s3, s3 = _b === void 0 ? 5 : _b;
+    for (var _i = 0, _a = [{ s3: "" }], _b = _a ? _a.length : 0; _i < _b; _i++) {
+        _c = _a[_i].s3, s3 = _c === void 0 ? 5 : _c;
     }
-    var _b;
+    var _c;
 });
 (function () {
     var y;

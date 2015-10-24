@@ -80,22 +80,22 @@
 })();
 (function () {
     var ns = [];
-    for (var _i = 0; _i < ns.length; _i++) {
-        var _a = ns[_i];
+    for (var _i = 0, _a = ns ? ns.length : 0; _i < _a; _i++) {
+        var _b = ns[_i];
     }
-    for (var _b = 0; _b < ns.length; _b++) {
-        var _c = ns[_b];
+    for (var _c = 0, _d = ns ? ns.length : 0; _c < _d; _c++) {
+        var _e = ns[_c];
     }
-    for (var _d = 0; _d < ns.length; _d++) {
-        var _e = ns[_d];
+    for (var _f = 0, _g = ns ? ns.length : 0; _f < _g; _f++) {
+        var _h = ns[_f];
     }
-    for (var _f = 0; _f < ns.length; _f++) {
-        var _g = ns[_f];
+    for (var _j = 0, _k = ns ? ns.length : 0; _j < _k; _j++) {
+        var _l = ns[_j];
     }
-    for (var _h = 0; _h < ns.length; _h++) {
-        var _j = ns[_h];
+    for (var _m = 0, _o = ns ? ns.length : 0; _m < _o; _m++) {
+        var _p = ns[_m];
     }
-    for (var _k = 0; _k < ns.length; _k++) {
-        var _l = ns[_k];
+    for (var _q = 0, _r = ns ? ns.length : 0; _q < _r; _q++) {
+        var _s = ns[_q];
     }
 })();

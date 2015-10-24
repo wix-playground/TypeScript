@@ -402,42 +402,42 @@ function foo6() {
     use(x);
 }
 function foo7() {
-    for (var _i = 0, _a = []; _i < _a.length; _i++) {
+    for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
         var x_11 = _a[_i];
         use(x_11);
     }
     use(x);
 }
 function foo8() {
-    for (var _i = 0, _a = []; _i < _a.length; _i++) {
+    for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
         var x_12 = _a[_i][0];
         use(x_12);
     }
     use(x);
 }
 function foo9() {
-    for (var _i = 0, _a = []; _i < _a.length; _i++) {
+    for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
         var x_13 = _a[_i].a;
         use(x_13);
     }
     use(x);
 }
 function foo10() {
-    for (var _i = 0, _a = []; _i < _a.length; _i++) {
+    for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
         var x_14 = _a[_i];
         use(x_14);
     }
     use(x);
 }
 function foo11() {
-    for (var _i = 0, _a = []; _i < _a.length; _i++) {
+    for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
         var x_15 = _a[_i][0];
         use(x_15);
     }
     use(x);
 }
 function foo12() {
-    for (var _i = 0, _a = []; _i < _a.length; _i++) {
+    for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
         var x_16 = _a[_i].a;
         use(x_16);
     }

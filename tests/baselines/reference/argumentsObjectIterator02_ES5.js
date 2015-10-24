@@ -16,7 +16,7 @@ function doubleAndReturnAsArray(x: number, y: number, z: number): [number, numbe
 function doubleAndReturnAsArray(x, y, z) {
     var blah = arguments[Symbol.iterator];
     var result = [];
-    for (var _i = 0, _a = blah(); _i < _a.length; _i++) {
+    for (var _i = 0, _a = blah(), _b = _a ? _a.length : 0; _i < _b; _i++) {
         var arg = _a[_i];
         result.push(arg + arg);
     }

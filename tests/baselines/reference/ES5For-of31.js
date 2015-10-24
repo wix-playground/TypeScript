@@ -8,9 +8,9 @@ for ({ a: b = 1, b: a = ""} of []) {
 
 //// [ES5For-of31.js]
 var a, b;
-for (var _i = 0, _a = []; _i < _a.length; _i++) {
-    _b = _a[_i], _c = _b.a, b = _c === void 0 ? 1 : _c, _d = _b.b, a = _d === void 0 ? "" : _d;
+for (var _i = 0, _a = [], _b = _a ? _a.length : 0; _i < _b; _i++) {
+    _c = _a[_i], _d = _c.a, b = _d === void 0 ? 1 : _d, _e = _c.b, a = _e === void 0 ? "" : _e;
     a;
     b;
 }
-var _b, _c, _d;
+var _c, _d, _e;
