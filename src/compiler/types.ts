@@ -2060,8 +2060,11 @@ namespace ts {
 
     export const enum ModuleResolutionKind {
         Classic  = 1,
-        NodeJs  = 2
+        NodeJs   = 2,
+        BaseUrl  = 3
     }
+
+    export type PathSubstitutions = Map<string[]>
 
     export interface CompilerOptions {
         allowNonTsExtensions?: boolean;
@@ -2110,12 +2113,15 @@ namespace ts {
         noImplicitReturns?: boolean;
         noFallthroughCasesInSwitch?: boolean;
         forceConsistentCasingInFileNames?: boolean;
+        baseUrl?: string;
+        paths?: PathSubstitutions;
+        rootDirs?: string[];
         /* @internal */ stripInternal?: boolean;
 
         // Skip checking lib.d.ts to help speed up tests.
         /* @internal */ skipDefaultLibCheck?: boolean;
 
-        [option: string]: string | number | boolean;
+        [option: string]: string | number | boolean | PathSubstitutions | string[];
     }
 
     export const enum ModuleKind {

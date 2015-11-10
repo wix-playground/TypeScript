@@ -355,6 +355,10 @@ namespace ts {
                 sys.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);
                 return;
             }
+            if (configParseResult.options.moduleResolution === ModuleResolutionKind.BaseUrl && !configParseResult.options.baseUrl) {
+                // if baseUrl have not been specified - use location of tsconfig.json
+                configParseResult.options.baseUrl = getDirectoryPath(getNormalizedAbsolutePath(configFileName, sys.getCurrentDirectory()));
+            }
             return configParseResult;
         }
 
@@ -706,8 +710,8 @@ namespace ts {
 
         return;
 
-        function serializeCompilerOptions(options: CompilerOptions): Map<string | number | boolean> {
-            const result: Map<string | number | boolean> = {};
+        function serializeCompilerOptions(options: CompilerOptions): Map<string | number | boolean | PathSubstitutions> {
+            const result: Map<string | number | boolean | PathSubstitutions> = {};
             const optionsNameMap = getOptionNameMap().optionNameMap;
 
             for (const name in options) {

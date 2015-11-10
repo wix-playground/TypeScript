@@ -2322,6 +2322,10 @@
         "category": "Error",
         "code": 6082
     },
+    "Base directory to resolve relative module names.": {
+        "category": "Error",
+        "code": 6083
+    },    
     "Variable '{0}' implicitly has an '{1}' type.": {
         "category": "Error",
         "code": 7005

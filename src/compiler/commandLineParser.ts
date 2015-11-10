@@ -250,7 +250,8 @@ namespace ts {
             name: "moduleResolution",
             type: {
                 "node": ModuleResolutionKind.NodeJs,
-                "classic": ModuleResolutionKind.Classic
+                "classic": ModuleResolutionKind.Classic,
+                "baseUrl": ModuleResolutionKind.BaseUrl,
             },
             description: Diagnostics.Specifies_module_resolution_strategy_Colon_node_Node_js_or_classic_TypeScript_pre_1_6,
             error: Diagnostics.Argument_for_moduleResolution_option_must_be_node_or_classic,
@@ -279,7 +280,20 @@ namespace ts {
             name: "forceConsistentCasingInFileNames",
             type: "boolean",
             description: Diagnostics.Disallow_inconsistently_cased_references_to_the_same_file
-        }
+        },
+        {
+            name: "baseUrl",
+            type: "string",
+            description: Diagnostics.Base_directory_to_resolve_relative_module_names
+        },
+        {
+            name: "paths",
+            type: "object"
+        },
+        {
+            name: "rootDirs",
+            type: "object"
+        }        
     ];
 
     /* @internal */
