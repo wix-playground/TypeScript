@@ -436,7 +436,36 @@ export = C;
         });
 
         it ("module resolution with path mappings and root dirs", () => {
-            
+            let file1: File = { name: "/root/folder1/file1.ts" };
+            let file2: File = { name: "/root/generated/folder1/file2.ts" };
+            let file3: File = { name: "/root/generated/folder2/file3.ts" };
+            const host = createModuleResolutionHost(file1, file2, file3);
+            const options: CompilerOptions = { 
+                moduleResolution: ModuleResolutionKind.BaseUrl,
+                baseUrl: "/root",
+                paths: {
+                    "*": [
+                        "*",
+                        "generated/*"
+                    ]
+                },
+                rootDirs: [
+                    ".",
+                    "./generated/"
+                ]
+            };
+            {
+                const result = baseUrlModuleNameResolver("./file2", file1.name, options, host);
+                assert.isTrue(result.resolvedModule !== undefined, "module should be resolved");
+                assert.equal(result.resolvedModule.resolvedFileName, file2.name);
+                assert.deepEqual(result.failedLookupLocations, []);
+            }
+            {
+                const result = baseUrlModuleNameResolver("../folder1/file1", file3.name, options, host);
+                assert.isTrue(result.resolvedModule !== undefined, "module should be resolved");
+                assert.equal(result.resolvedModule.resolvedFileName, file1.name);
+                assert.deepEqual(result.failedLookupLocations, []);
+            }            
         });
     })
 }
