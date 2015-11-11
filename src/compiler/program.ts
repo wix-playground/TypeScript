@@ -70,42 +70,56 @@ namespace ts {
 
         const containingDirectory = getDirectoryPath(containingFile);
         const candidate = normalizePath(combinePaths(containingDirectory, moduleName));
-        const resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
 
         if (options.rootDirs) {
             const normalizedRootDirs = map(options.rootDirs, r => getNormalizedAbsolutePath(r, options.baseUrl));
+            let matchedRoot: string;
+            for (const root of normalizedRootDirs) {
+                // TODO: respect casing
+                if (startsWith(candidate, root)) {
+                    if (!matchedRoot || matchedRoot.length < root.length) {
+                        matchedRoot = root;
+                    }
+                }
+            }
+            if (matchedRoot) {
+                const suffix = candidate.substr(matchedRoot.length);
+                return baseUrlResolveNonRelativeModuleName(suffix, options, host);
+            }
+            return { resolvedModule: undefined, failedLookupLocations };
         }
         else {
+            const resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
             return {
                 resolvedModule: resolvedFileName ? { resolvedFileName } : undefined,
                 failedLookupLocations
-            }
+            };
         }
     }
 
     export function baseUrlResolveNonRelativeModuleName(moduleName: string, options: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
-        let longestMatchPrefixLength = 0;
+        let longestMatchPrefixLength = -1;
         let matchedPattern: string;
         let matchedStar: string;
 
         const failedLookupLocations: string[] = [];
         if (options.paths) {
-            for (let key in options.paths) {
+            for (const key in options.paths) {
                 const pattern: string = key;
                 // TODO: verify that pattern has at most one star
                 const indexOfStar = pattern.indexOf("*");
                 if (indexOfStar !== -1) {
                     const prefix = pattern.substr(0, indexOfStar);
                     const suffix = pattern.substr(indexOfStar + 1);
-                    if (moduleName.length >= prefix.length + suffix.length && 
-                        startsWith(moduleName, prefix) && 
+                    if (moduleName.length >= prefix.length + suffix.length &&
+                        startsWith(moduleName, prefix) &&
                         endsWith(moduleName, suffix)) {
 
                         // use length of prefix as betterness criteria
-                        if (longestMatchPrefixLength > prefix.length) {
+                        if (prefix.length > longestMatchPrefixLength) {
                             longestMatchPrefixLength = prefix.length;
                             matchedPattern = pattern;
-                            matchedStar = moduleName.substr(prefix.length, moduleName.length - suffix.length); 
+                            matchedStar = moduleName.substr(prefix.length, moduleName.length - suffix.length);
                         }
                     }
                 }
@@ -121,15 +135,16 @@ namespace ts {
         if (matchedPattern) {
             for (const subst of options.paths[matchedPattern]) {
                 // TODO: verify that subst has at most one star
-                let path = matchedStar ? subst.replace("\*", matchedStar) : subst;
+                const path = matchedStar ? subst.replace("\*", matchedStar) : subst;
                 // TODO: check if path is relative and should be combined with containing directory
                 const candidate = normalizePath(combinePaths(options.baseUrl, path));
                 const resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
                 if (resolvedFileName) {
-                    return { resolvedModule: { resolvedFileName }, failedLookupLocations }
+                    return { resolvedModule: { resolvedFileName }, failedLookupLocations };
                 }
             }
-            return undefined;
+
+            return { resolvedModule: undefined, failedLookupLocations };
         }
         else {
             const candidate = normalizePath(combinePaths(options.baseUrl, moduleName));
@@ -137,7 +152,7 @@ namespace ts {
             return {
                 resolvedModule: resolvedFileName ? { resolvedFileName } : undefined,
                 failedLookupLocations
-            }
+            };
         }
     }
 
@@ -146,7 +161,7 @@ namespace ts {
     }
 
     function endsWith(str: string, suffix: string): boolean {
-        let expectedPos = str.length - suffix.length;
+        const expectedPos = str.length - suffix.length;
         return str.indexOf(suffix, expectedPos) === expectedPos;
     }
 

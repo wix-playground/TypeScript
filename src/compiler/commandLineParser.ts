@@ -293,7 +293,7 @@ namespace ts {
         {
             name: "rootDirs",
             type: "object"
-        }        
+        }
     ];
 
     /* @internal */

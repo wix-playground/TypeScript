@@ -710,8 +710,8 @@ namespace ts {
 
         return;
 
-        function serializeCompilerOptions(options: CompilerOptions): Map<string | number | boolean | PathSubstitutions> {
-            const result: Map<string | number | boolean | PathSubstitutions> = {};
+        function serializeCompilerOptions(options: CompilerOptions): Map<string | number | boolean | PathSubstitutions | string[]> {
+            const result: Map<string | number | boolean | PathSubstitutions | string[]> = {};
             const optionsNameMap = getOptionNameMap().optionNameMap;
 
             for (const name in options) {
