@@ -95,8 +95,8 @@ module ts {
             let resolution = nodeModuleNameResolver(moduleName, containingFile.name, createModuleResolutionHost(containingFile, packageJson, moduleFile));
             assert.equal(resolution.resolvedModule.resolvedFileName, moduleFile.name);
             assert.equal(!!resolution.resolvedModule.isExternalLibraryImport, false);
-            // expect three failed lookup location - attempt to load module as file with all supported extensions
-            assert.equal(resolution.failedLookupLocations.length, 3);
+            // expect five failed lookup location - attempt to load module as file with all supported extensions
+            assert.equal(resolution.failedLookupLocations.length, 5);
         }
 
         it("module name as directory - load from typings", () => {
@@ -117,6 +117,8 @@ module ts {
                 "/a/b/foo.ts",
                 "/a/b/foo.tsx",
                 "/a/b/foo.d.ts",
+                "/a/b/foo.js",
+                "/a/b/foo.jsx",
                 "/a/b/foo/index.ts",
                 "/a/b/foo/index.tsx",
             ]);
@@ -143,7 +145,7 @@ module ts {
                 "/a/b/c/node_modules/foo/package.json",
                 "/a/b/c/node_modules/foo/index.ts",
                 "/a/b/c/node_modules/foo/index.tsx",
-                "/a/b/c/node_modules/foo/index.d.ts"
+                "/a/b/c/node_modules/foo/index.d.ts",
             ])
         });
 
@@ -458,14 +460,18 @@ export = C;
                 const result = baseUrlModuleNameResolver("./file2", file1.name, options, host);
                 assert.isTrue(result.resolvedModule !== undefined, "module should be resolved");
                 assert.equal(result.resolvedModule.resolvedFileName, file2.name);
-                assert.deepEqual(result.failedLookupLocations, []);
+                assert.deepEqual(result.failedLookupLocations, [
+                    "/root/folder1/file2.ts",
+                    "/root/folder1/file2.tsx",
+                    "/root/folder1/file2.d.ts",
+                ]);
             }
             {
                 const result = baseUrlModuleNameResolver("../folder1/file1", file3.name, options, host);
                 assert.isTrue(result.resolvedModule !== undefined, "module should be resolved");
                 assert.equal(result.resolvedModule.resolvedFileName, file1.name);
                 assert.deepEqual(result.failedLookupLocations, []);
-            }            
+            }
         });
     })
 }

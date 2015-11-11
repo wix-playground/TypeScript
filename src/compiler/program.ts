@@ -72,7 +72,11 @@ namespace ts {
         const candidate = normalizePath(combinePaths(containingDirectory, moduleName));
 
         if (options.rootDirs) {
-            const normalizedRootDirs = map(options.rootDirs, r => getNormalizedAbsolutePath(r, options.baseUrl));
+            const normalizedRootDirs = map(options.rootDirs, r => {
+                const normalizedRoot = getNormalizedAbsolutePath(r, options.baseUrl);
+                return endsWith(normalizedRoot, directorySeparator) ? normalizedRoot : normalizedRoot + directorySeparator;
+            });
+
             let matchedRoot: string;
             for (const root of normalizedRootDirs) {
                 // TODO: respect casing
@@ -89,7 +93,7 @@ namespace ts {
             return { resolvedModule: undefined, failedLookupLocations };
         }
         else {
-            const resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
+            const resolvedFileName = loadModuleFromFile(supportedExtensions, candidate, failedLookupLocations, host);
             return {
                 resolvedModule: resolvedFileName ? { resolvedFileName } : undefined,
                 failedLookupLocations
@@ -138,7 +142,7 @@ namespace ts {
                 const path = matchedStar ? subst.replace("\*", matchedStar) : subst;
                 // TODO: check if path is relative and should be combined with containing directory
                 const candidate = normalizePath(combinePaths(options.baseUrl, path));
-                const resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
+                const resolvedFileName = loadModuleFromFile(supportedExtensions, candidate, failedLookupLocations, host);
                 if (resolvedFileName) {
                     return { resolvedModule: { resolvedFileName }, failedLookupLocations };
                 }
@@ -148,7 +152,7 @@ namespace ts {
         }
         else {
             const candidate = normalizePath(combinePaths(options.baseUrl, moduleName));
-            const resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
+            const resolvedFileName = loadModuleFromFile(supportedExtensions, candidate, failedLookupLocations, host);
             return {
                 resolvedModule: resolvedFileName ? { resolvedFileName } : undefined,
                 failedLookupLocations
@@ -171,13 +175,13 @@ namespace ts {
         if (isRootedDiskPath(moduleName) || nameStartsWithDotSlashOrDotDotSlash(moduleName)) {
             const failedLookupLocations: string[] = [];
             const candidate = normalizePath(combinePaths(containingDirectory, moduleName));
-            let resolvedFileName = loadModuleFromFile(candidate, failedLookupLocations, host);
+            let resolvedFileName = loadModuleFromFile(supportedJsExtensions, candidate, failedLookupLocations, host);
 
             if (resolvedFileName) {
                 return { resolvedModule: { resolvedFileName }, failedLookupLocations };
             }
 
-            resolvedFileName = loadNodeModuleFromDirectory(candidate, failedLookupLocations, host);
+            resolvedFileName = loadNodeModuleFromDirectory(supportedJsExtensions, candidate, failedLookupLocations, host);
             return resolvedFileName
                 ? { resolvedModule: { resolvedFileName }, failedLookupLocations }
                 : { resolvedModule: undefined, failedLookupLocations };
@@ -187,8 +191,8 @@ namespace ts {
         }
     }
 
-    function loadModuleFromFile(candidate: string, failedLookupLocation: string[], host: ModuleResolutionHost): string {
-        return forEach(moduleFileExtensions, tryLoad);
+    function loadModuleFromFile(extensions: string[], candidate: string, failedLookupLocation: string[], host: ModuleResolutionHost): string {
+        return forEach(extensions, tryLoad);
 
         function tryLoad(ext: string): string {
             const fileName = fileExtensionIs(candidate, ext) ? candidate : candidate + ext;
@@ -202,7 +206,7 @@ namespace ts {
         }
     }
 
-    function loadNodeModuleFromDirectory(candidate: string, failedLookupLocation: string[], host: ModuleResolutionHost): string {
+    function loadNodeModuleFromDirectory(extensions: string[], candidate: string, failedLookupLocation: string[], host: ModuleResolutionHost): string {
         const packageJsonPath = combinePaths(candidate, "package.json");
         if (host.fileExists(packageJsonPath)) {
 
@@ -218,7 +222,7 @@ namespace ts {
             }
 
             if (jsonContent.typings) {
-                const result = loadModuleFromFile(normalizePath(combinePaths(candidate, jsonContent.typings)), failedLookupLocation, host);
+                const result = loadModuleFromFile(extensions, normalizePath(combinePaths(candidate, jsonContent.typings)), failedLookupLocation, host);
                 if (result) {
                     return result;
                 }
@@ -229,7 +233,7 @@ namespace ts {
             failedLookupLocation.push(packageJsonPath);
         }
 
-        return loadModuleFromFile(combinePaths(candidate, "index"), failedLookupLocation, host);
+        return loadModuleFromFile(extensions, combinePaths(candidate, "index"), failedLookupLocation, host);
     }
 
     function loadModuleFromNodeModules(moduleName: string, directory: string, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
@@ -240,12 +244,12 @@ namespace ts {
             if (baseName !== "node_modules") {
                 const nodeModulesFolder = combinePaths(directory, "node_modules");
                 const candidate = normalizePath(combinePaths(nodeModulesFolder, moduleName));
-                let result = loadModuleFromFile(candidate, failedLookupLocations, host);
+                let result = loadModuleFromFile(supportedExtensions, candidate, failedLookupLocations, host);
                 if (result) {
                     return { resolvedModule: { resolvedFileName: result, isExternalLibraryImport: true }, failedLookupLocations };
                 }
 
-                result = loadNodeModuleFromDirectory(candidate, failedLookupLocations, host);
+                result = loadNodeModuleFromDirectory(supportedExtensions, candidate, failedLookupLocations, host);
                 if (result) {
                     return { resolvedModule: { resolvedFileName: result, isExternalLibraryImport: true }, failedLookupLocations };
                 }
@@ -280,9 +284,10 @@ namespace ts {
         const failedLookupLocations: string[] = [];
 
         let referencedSourceFile: string;
+        const extensions = compilerOptions.allowNonTsExtensions ? supportedJsExtensions : supportedExtensions;
         while (true) {
             searchName = normalizePath(combinePaths(searchPath, moduleName));
-            referencedSourceFile = forEach(supportedExtensions, extension => {
+            referencedSourceFile = forEach(extensions, extension => {
                 if (extension === ".tsx" && !compilerOptions.jsx) {
                     // resolve .tsx files only if jsx support is enabled 
                     // 'logical not' handles both undefined and None cases
@@ -806,45 +811,60 @@ namespace ts {
                 return;
             }
 
+            const isJavaScriptFile = isSourceFileJavaScript(file);
+
             let imports: LiteralExpression[];
             for (const node of file.statements) {
-                collect(node, /* allowRelativeModuleNames */ true);
+                collect(node, /* allowRelativeModuleNames */ true, /* collectOnlyRequireCalls */ false);
             }
 
             file.imports = imports || emptyArray;
 
-            function collect(node: Node, allowRelativeModuleNames: boolean): void {
-                switch (node.kind) {
-                    case SyntaxKind.ImportDeclaration:
-                    case SyntaxKind.ImportEqualsDeclaration:
-                    case SyntaxKind.ExportDeclaration:
-                        let moduleNameExpr = getExternalModuleName(node);
-                        if (!moduleNameExpr || moduleNameExpr.kind !== SyntaxKind.StringLiteral) {
-                            break;
-                        }
-                        if (!(<LiteralExpression>moduleNameExpr).text) {
-                            break;
-                        }
+            return;
 
-                        if (allowRelativeModuleNames || !isExternalModuleNameRelative((<LiteralExpression>moduleNameExpr).text)) {
-                            (imports || (imports = [])).push(<LiteralExpression>moduleNameExpr);
-                        }
-                        break;
-                    case SyntaxKind.ModuleDeclaration:
-                        if ((<ModuleDeclaration>node).name.kind === SyntaxKind.StringLiteral && (node.flags & NodeFlags.Ambient || isDeclarationFile(file))) {
-                            // TypeScript 1.0 spec (April 2014): 12.1.6
-                            // An AmbientExternalModuleDeclaration declares an external module. 
-                            // This type of declaration is permitted only in the global module.
-                            // The StringLiteral must specify a top - level external module name.
-                            // Relative external module names are not permitted
-                            forEachChild((<ModuleDeclaration>node).body, node => {
+            function collect(node: Node, allowRelativeModuleNames: boolean, collectOnlyRequireCalls: boolean): void {
+                if (!collectOnlyRequireCalls) {
+                    switch (node.kind) {
+                        case SyntaxKind.ImportDeclaration:
+                        case SyntaxKind.ImportEqualsDeclaration:
+                        case SyntaxKind.ExportDeclaration:
+                            let moduleNameExpr = getExternalModuleName(node);
+                            if (!moduleNameExpr || moduleNameExpr.kind !== SyntaxKind.StringLiteral) {
+                                break;
+                            }
+                            if (!(<LiteralExpression>moduleNameExpr).text) {
+                                break;
+                            }
+
+                            if (allowRelativeModuleNames || !isExternalModuleNameRelative((<LiteralExpression>moduleNameExpr).text)) {
+                                (imports || (imports = [])).push(<LiteralExpression>moduleNameExpr);
+                            }
+                            break;
+                        case SyntaxKind.ModuleDeclaration:
+                            if ((<ModuleDeclaration>node).name.kind === SyntaxKind.StringLiteral && (node.flags & NodeFlags.Ambient || isDeclarationFile(file))) {
                                 // TypeScript 1.0 spec (April 2014): 12.1.6
-                                // An ExternalImportDeclaration in anAmbientExternalModuleDeclaration may reference other external modules 
-                                // only through top - level external module names. Relative external module names are not permitted.
-                                collect(node, /* allowRelativeModuleNames */ false);
-                            });
-                        }
-                        break;
+                                // An AmbientExternalModuleDeclaration declares an external module. 
+                                // This type of declaration is permitted only in the global module.
+                                // The StringLiteral must specify a top - level external module name.
+                                // Relative external module names are not permitted
+                                forEachChild((<ModuleDeclaration>node).body, node => {
+                                    // TypeScript 1.0 spec (April 2014): 12.1.6
+                                    // An ExternalImportDeclaration in anAmbientExternalModuleDeclaration may reference other external modules 
+                                    // only through top - level external module names. Relative external module names are not permitted.
+                                    collect(node, /* allowRelativeModuleNames */ false, collectOnlyRequireCalls);
+                                });
+                            }
+                            break;
+                    }
+                }
+
+                if (isJavaScriptFile) {
+                    if (isRequireCall(node)) {
+                        (imports || (imports = [])).push(<StringLiteral>(<CallExpression>node).arguments[0]);
+                    }
+                    else {
+                        forEachChild(node, node => collect(node, allowRelativeModuleNames, /* collectOnlyRequireCalls */ true));
+                    }
                 }
             }
         }
