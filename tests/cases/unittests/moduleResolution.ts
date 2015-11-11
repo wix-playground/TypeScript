@@ -390,7 +390,8 @@ export = C;
             const file2: File = { name: "/root/folder1/file2.ts" }
             const file3: File = { name: "/root/generated/folder1/file3.ts" }
             const file4: File = { name: "/root/generated/folder2/file4.ts" }
-            const host = createModuleResolutionHost(file1, file2, file3, file4);
+            const file5: File = { name: "/root/someanotherfolder/file5.ts" }
+            const host = createModuleResolutionHost(file1, file2, file3, file4, file5);
             const options: CompilerOptions = { 
                 moduleResolution: ModuleResolutionKind.BaseUrl,
                 baseUrl: "/root",
@@ -398,6 +399,9 @@ export = C;
                     "*": [
                         "*",
                         "generated/*"
+                    ],
+                    "somefolder/*": [
+                        "someanotherfolder/*"
                     ]
                 }
             };
@@ -433,6 +437,12 @@ export = C;
                     "/root/folder2/file4.tsx",
                     "/root/folder2/file4.d.ts",
                 ]);
+            }
+            {
+                const result = baseUrlModuleNameResolver("somefolder/file5", file1.name, options, host);
+                assert.isTrue(result.resolvedModule !== undefined, "module should be resolved");
+                assert.equal(result.resolvedModule.resolvedFileName, file5.name);
+                assert.deepEqual(result.failedLookupLocations, []);
             }
             // add failure tests
         });
