@@ -251,10 +251,10 @@ namespace ts {
             type: {
                 "node": ModuleResolutionKind.NodeJs,
                 "classic": ModuleResolutionKind.Classic,
-                "baseUrl": ModuleResolutionKind.BaseUrl,
+                "baseurl": ModuleResolutionKind.BaseUrl,
             },
             description: Diagnostics.Specifies_module_resolution_strategy_Colon_node_Node_js_or_classic_TypeScript_pre_1_6,
-            error: Diagnostics.Argument_for_moduleResolution_option_must_be_node_or_classic,
+            error: Diagnostics.Argument_for_moduleResolution_option_must_be_node_classic_or_baseUrl,
         },
         {
             name: "allowUnusedLabels",
@@ -284,6 +284,7 @@ namespace ts {
         {
             name: "baseUrl",
             type: "string",
+            isFilePath: true,
             description: Diagnostics.Base_directory_to_resolve_relative_module_names
         },
         {
@@ -490,6 +491,9 @@ namespace ts {
       */
     export function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string): ParsedCommandLine {
         const { options, errors } = convertCompilerOptionsFromJson(json["compilerOptions"], basePath);
+        if (options && options.baseUrl === undefined) {
+            options.baseUrl = basePath;
+        }
 
         return {
             options,

@@ -271,6 +271,16 @@ namespace ts {
         return i === 0 || (i === 1 && name.charCodeAt(0) === CharacterCodes.dot);
     }
 
+    function getNumberOfChars(str: string, ch: CharacterCodes): number {
+        let n = 0;
+        for (let i = 0; i < str.length; ++i) {
+            if (str.charCodeAt(i) === ch) {
+                n++;
+            }
+        }
+        return n;
+    }
+
     export function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
 
         // module names that contain '!' are used to reference resources and are not resolved to actual files on disk
@@ -1119,15 +1129,33 @@ namespace ts {
 
             if (options.baseUrl) {
                 if (options.moduleResolution !== ModuleResolutionKind.BaseUrl) {
-                    // FIXME:
-                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_cannot_be_specified_without_specifying_option_1, "baseUrl", "moduleResolution"));
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "baseUrl"));
                 }
             }
 
             if (options.paths) {
                 if (options.moduleResolution !== ModuleResolutionKind.BaseUrl) {
-                    // FIXME:
-                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_cannot_be_specified_without_specifying_option_1, "paths", "moduleResolution"));
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "paths"));
+                }
+
+                for (let key in options.paths) {
+                    if (!hasProperty(options.paths, key)) {
+                        continue;
+                    }
+                    if (getNumberOfChars(key, CharacterCodes.asterisk) > 1) {
+                        programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Pattern_0_can_have_at_most_one_Asterisk_character, key));
+                    }
+                    for (let subst of options.paths[key]) {
+                        if (getNumberOfChars(subst, CharacterCodes.asterisk) > 1) {
+                            programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Substitution_0_in_pattern_1_in_can_have_at_most_one_Asterisk_character, subst, key));
+                        }
+                    }
+                }
+            }
+
+            if (options.rootDirs) {
+                if (options.moduleResolution !== ModuleResolutionKind.BaseUrl) {
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "rootDirs"));
                 }
             }
 

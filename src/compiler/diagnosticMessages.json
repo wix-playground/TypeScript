@@ -2060,7 +2060,18 @@
         "category": "Error",
         "code": 5054
     },
-
+    "Option '{0}' can only be used when option 'moduleResolution' is 'BaseUrl'.": {
+        "category": "Error",
+        "code": 5055
+    },
+    "Pattern '{0}' can have at most one '*' character": {
+        "category": "Error",
+        "code": 5056
+    },
+    "Substitution '{0}' in pattern '{1}' in can have at most one '*' character": {
+        "category": "Error",
+        "code": 5057
+    },
     "Concatenate and emit output to single file.": {
         "category": "Message",
         "code": 6001
@@ -2253,7 +2264,7 @@
         "category": "Error",
         "code": 6062
     },
-    "Argument for '--moduleResolution' option must be 'node' or 'classic'.": {
+    "Argument for '--moduleResolution' option must be 'node', 'classic' or 'baseUrl'.": {
         "category": "Error",
         "code": 6063
     },
