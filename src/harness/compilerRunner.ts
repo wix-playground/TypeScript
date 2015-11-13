@@ -46,7 +46,11 @@ class CompilerBaselineRunner extends RunnerBase {
             // Everything declared here should be cleared out in the "after" callback.
             let justName: string;
             let content: string;
-            let testCaseContent: { settings: Harness.TestCaseParser.CompilerSettings; testUnitData: Harness.TestCaseParser.TestUnitData[]; };
+            let testCaseContent: {
+                settings: Harness.TestCaseParser.CompilerSettings;
+                testUnitData: Harness.TestCaseParser.TestUnitData[];
+                tsConfig: ts.ParsedCommandLine
+            };
 
             let units: Harness.TestCaseParser.TestUnitData[];
             let tcSettings: Harness.TestCaseParser.CompilerSettings;
@@ -66,17 +70,31 @@ class CompilerBaselineRunner extends RunnerBase {
             before(() => {
                 justName = fileName.replace(/^.*[\\\/]/, ""); // strips the fileName from the path.
                 content = Harness.IO.readFile(fileName);
-                testCaseContent = Harness.TestCaseParser.makeUnitsFromTest(content, fileName);
+                rootDir = fileName.indexOf("conformance") === -1 ? "tests/cases/compiler/" : ts.getDirectoryPath(fileName) + "/";
+                testCaseContent = Harness.TestCaseParser.makeUnitsFromTest(content, fileName, rootDir);
                 units = testCaseContent.testUnitData;
                 tcSettings = testCaseContent.settings;
+                let tsConfigOptions: ts.CompilerOptions;
+                if (testCaseContent.tsConfig) {
+                    assert.equal(testCaseContent.tsConfig.fileNames.length, 0, `list of files in tsconfig is not currently supported`);
+
+                    tsConfigOptions = ts.clone(testCaseContent.tsConfig.options);
+                }
+                else {
+                    const baseUrl = tcSettings["baseUrl"];
+                    if (baseUrl !== undefined && !ts.isRootedDiskPath(baseUrl)) {
+                        tcSettings["baseUrl"] = ts.getNormalizedAbsolutePath(baseUrl, rootDir);
+                    }
+                }
+
                 lastUnit = units[units.length - 1];
-                rootDir = lastUnit.originalFilePath.indexOf("conformance") === -1 ? "tests/cases/compiler/" : lastUnit.originalFilePath.substring(0, lastUnit.originalFilePath.lastIndexOf("/")) + "/";
                 harnessCompiler = Harness.Compiler.getCompiler();
                 // We need to assemble the list of input files for the compiler and other related files on the 'filesystem' (ie in a multi-file test)
                 // If the last file in a test uses require or a triple slash reference we'll assume all other files will be brought in via references,
                 // otherwise, assume all files are just meant to be in the same compilation session without explicit references to one another.
                 toBeCompiled = [];
                 otherFiles = [];
+
                 if (/require\(/.test(lastUnit.content) || /reference\spath/.test(lastUnit.content)) {
                     toBeCompiled.push({ unitName: rootDir + lastUnit.name, content: lastUnit.content });
                     units.forEach(unit => {
@@ -91,13 +109,15 @@ class CompilerBaselineRunner extends RunnerBase {
                     });
                 }
 
-                options = harnessCompiler.compileFiles(toBeCompiled, otherFiles, function (compileResult, _program) {
-                    result = compileResult;
-                    // The program will be used by typeWriter
-                    program = _program;
-                }, function (settings) {
+                options = harnessCompiler.compileFiles(toBeCompiled, otherFiles,
+                    (compileResult, _program) => {
+                        result = compileResult;
+                        // The program will be used by typeWriter
+                        program = _program;
+                    }, (settings) => {
                         harnessCompiler.setCompilerSettings(tcSettings);
-                    });
+                    }, tsConfigOptions
+                );
             });
 
             after(() => {

@@ -1489,7 +1489,7 @@ namespace Harness {
         }
 
         /** Given a test file containing // @FileName directives, return an array of named units of code to be added to an existing compiler instance */
-        export function makeUnitsFromTest(code: string, fileName: string): { settings: CompilerSettings; testUnitData: TestUnitData[]; } {
+        export function makeUnitsFromTest(code: string, fileName: string, rootDir?: string): { settings: CompilerSettings; testUnitData: TestUnitData[]; tsConfig: ts.ParsedCommandLine } {
             const settings = extractCompilerSettings(code);
 
             // List of all the subfiles we've parsed out
@@ -1567,7 +1567,31 @@ namespace Harness {
             };
             testUnitData.push(newTestFile2);
 
-            return { settings, testUnitData };
+            // unit tests always list files explicitly 
+            const parseConfigHost: ts.ParseConfigHost = {
+                readDirectory: (name) => []
+            };
+
+            // check if project has tsconfig.json in the list of files
+            let tsConfig: ts.ParsedCommandLine;
+            for (let i = 0; i < testUnitData.length; ++i) {
+                const data = testUnitData[i];
+                if (ts.getBaseFileName(data.name).toLowerCase() === "tsconfig.json") {
+                    const configJson = ts.parseConfigFileTextToJson(data.name, data.content);
+                    assert.isTrue(configJson.config !== undefined);
+                    let baseDir = ts.normalizePath(ts.getDirectoryPath(data.name));
+                    if (rootDir) {
+                        baseDir = ts.getNormalizedAbsolutePath(baseDir, rootDir);
+                    }
+                    tsConfig = ts.parseJsonConfigFileContent(configJson.config, parseConfigHost, baseDir);
+
+                    // delete entry from the list
+                    testUnitData.splice(i, 1);
+
+                    break;
+                }
+            }
+            return { settings, testUnitData, tsConfig };
         }
     }
 

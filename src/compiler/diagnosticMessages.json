@@ -2072,6 +2072,14 @@
         "category": "Error",
         "code": 5057
     },
+    "'moduleResolution' kind 'BaseUrl' cannot be used without specifying '--baseUrl' option.": {
+        "category": "Error",
+        "code": 5058
+    },
+    "Module resolution kind cannot be determined automatically. Please specify module resolution explicitly via 'moduleResolution' option.": {
+        "category": "Error",
+        "code": 5059
+    },
     "Concatenate and emit output to single file.": {
         "category": "Message",
         "code": 6001

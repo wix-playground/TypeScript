@@ -37,9 +37,18 @@ namespace ts {
     }
 
     export function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
-        const moduleResolution = compilerOptions.moduleResolution !== undefined
-            ? compilerOptions.moduleResolution
-            : compilerOptions.module === ModuleKind.CommonJS ? ModuleResolutionKind.NodeJs : ModuleResolutionKind.Classic;
+        let moduleResolution = compilerOptions.moduleResolution;
+        if (moduleResolution === undefined) {
+            if (compilerOptions.module === ModuleKind.CommonJS) {
+                moduleResolution = ModuleResolutionKind.NodeJs;
+            }
+            else if (compilerOptions.baseUrl !== undefined || compilerOptions.paths || compilerOptions.rootDirs) {
+                moduleResolution = ModuleResolutionKind.BaseUrl;
+            }
+            else {
+                moduleResolution = ModuleResolutionKind.Classic;
+            }
+        }
 
         switch (moduleResolution) {
             case ModuleResolutionKind.NodeJs: return nodeModuleNameResolver(moduleName, containingFile, host);
@@ -49,7 +58,8 @@ namespace ts {
     }
 
     export function baseUrlModuleNameResolver(moduleName: string, containingFile: string, options: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
-        Debug.assert(options.baseUrl !== undefined);
+        const baseUrl = options.baseUrl !== undefined ? options.baseUrl : options.inferredBaseUrl;
+        Debug.assert(baseUrl !== undefined);
 
         if (isRootedDiskPath(moduleName)) {
             return { resolvedModule: {resolvedFileName: moduleName}, failedLookupLocations: emptyArray };
@@ -57,15 +67,15 @@ namespace ts {
 
         if (nameStartsWithDotSlashOrDotDotSlash(moduleName)) {
             // relative name
-            return baseUrlResolveRelativeModuleName(moduleName, containingFile, options, host);
+            return baseUrlResolveRelativeModuleName(moduleName, containingFile, baseUrl, options, host);
         }
         else {
             // non-relative name
-            return baseUrlResolveNonRelativeModuleName(moduleName, options, host);
+            return baseUrlResolveNonRelativeModuleName(moduleName, baseUrl, options, host);
         }
     }
 
-    export function baseUrlResolveRelativeModuleName(moduleName: string, containingFile: string, options: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
+    export function baseUrlResolveRelativeModuleName(moduleName: string, containingFile: string, baseUrl: string, options: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
         const failedLookupLocations: string[] = [];
 
         const containingDirectory = getDirectoryPath(containingFile);
@@ -73,7 +83,7 @@ namespace ts {
 
         if (options.rootDirs) {
             const normalizedRootDirs = map(options.rootDirs, r => {
-                const normalizedRoot = getNormalizedAbsolutePath(r, options.baseUrl);
+                const normalizedRoot = getNormalizedAbsolutePath(r, baseUrl);
                 return endsWith(normalizedRoot, directorySeparator) ? normalizedRoot : normalizedRoot + directorySeparator;
             });
 
@@ -88,7 +98,7 @@ namespace ts {
             }
             if (matchedRoot) {
                 const suffix = candidate.substr(matchedRoot.length);
-                return baseUrlResolveNonRelativeModuleName(suffix, options, host);
+                return baseUrlResolveNonRelativeModuleName(suffix, baseUrl, options, host);
             }
             return { resolvedModule: undefined, failedLookupLocations };
         }
@@ -101,7 +111,7 @@ namespace ts {
         }
     }
 
-    export function baseUrlResolveNonRelativeModuleName(moduleName: string, options: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
+    export function baseUrlResolveNonRelativeModuleName(moduleName: string, baseUrl: string, options: CompilerOptions, host: ModuleResolutionHost): ResolvedModuleWithFailedLookupLocations {
         let longestMatchPrefixLength = -1;
         let matchedPattern: string;
         let matchedStar: string;
@@ -110,7 +120,6 @@ namespace ts {
         if (options.paths) {
             for (const key in options.paths) {
                 const pattern: string = key;
-                // TODO: verify that pattern has at most one star
                 const indexOfStar = pattern.indexOf("*");
                 if (indexOfStar !== -1) {
                     const prefix = pattern.substr(0, indexOfStar);
@@ -138,10 +147,8 @@ namespace ts {
 
         if (matchedPattern) {
             for (const subst of options.paths[matchedPattern]) {
-                // TODO: verify that subst has at most one star
                 const path = matchedStar ? subst.replace("\*", matchedStar) : subst;
-                // TODO: check if path is relative and should be combined with containing directory
-                const candidate = normalizePath(combinePaths(options.baseUrl, path));
+                const candidate = normalizePath(combinePaths(baseUrl, path));
                 const resolvedFileName = loadModuleFromFile(supportedExtensions, candidate, failedLookupLocations, host);
                 if (resolvedFileName) {
                     return { resolvedModule: { resolvedFileName }, failedLookupLocations };
@@ -151,7 +158,7 @@ namespace ts {
             return { resolvedModule: undefined, failedLookupLocations };
         }
         else {
-            const candidate = normalizePath(combinePaths(options.baseUrl, moduleName));
+            const candidate = normalizePath(combinePaths(baseUrl, moduleName));
             const resolvedFileName = loadModuleFromFile(supportedExtensions, candidate, failedLookupLocations, host);
             return {
                 resolvedModule: resolvedFileName ? { resolvedFileName } : undefined,
@@ -1127,35 +1134,44 @@ namespace ts {
                 }
             }
 
-            if (options.baseUrl) {
-                if (options.moduleResolution !== ModuleResolutionKind.BaseUrl) {
+            if (options.moduleResolution === ModuleResolutionKind.BaseUrl) {
+                if (options.baseUrl === undefined && options.inferredBaseUrl === undefined) {
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.moduleResolution_kind_BaseUrl_cannot_be_used_without_specifying_baseUrl_option));
+                }
+            }
+            else if (options.moduleResolution === undefined) {
+                // if module resolution kind is not specified it is an error to have baseUrl and module === CommonJs 
+                // since the former one implies moduleResolutionKind to be BaseUrl and the latter one - Node 
+                if (options.module === ModuleKind.CommonJS && options.baseUrl) {
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Module_resolution_kind_cannot_be_determined_automatically_Please_specify_module_resolution_explicitly_via_moduleResolution_option));
+                }
+            }
+            else {
+                // here it is known that moduleResolution is not baseurl and is not undefined
+                if (options.baseUrl !== undefined) {
                     programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "baseUrl"));
+                }
+                if (options.paths) {
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "paths"));
+                }
+                if (options.rootDirs) {
+                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "rootDirs"));
                 }
             }
 
             if (options.paths) {
-                if (options.moduleResolution !== ModuleResolutionKind.BaseUrl) {
-                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "paths"));
-                }
-
-                for (let key in options.paths) {
+                for (const key in options.paths) {
                     if (!hasProperty(options.paths, key)) {
                         continue;
                     }
                     if (getNumberOfChars(key, CharacterCodes.asterisk) > 1) {
                         programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Pattern_0_can_have_at_most_one_Asterisk_character, key));
                     }
-                    for (let subst of options.paths[key]) {
+                    for (const subst of options.paths[key]) {
                         if (getNumberOfChars(subst, CharacterCodes.asterisk) > 1) {
                             programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Substitution_0_in_pattern_1_in_can_have_at_most_one_Asterisk_character, subst, key));
                         }
                     }
-                }
-            }
-
-            if (options.rootDirs) {
-                if (options.moduleResolution !== ModuleResolutionKind.BaseUrl) {
-                    programDiagnostics.add(createCompilerDiagnostic(Diagnostics.Option_0_can_only_be_used_when_option_moduleResolution_is_BaseUrl, "rootDirs"));
                 }
             }
 

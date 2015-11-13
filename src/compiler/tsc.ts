@@ -360,7 +360,7 @@ namespace ts {
                 sys.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);
                 return;
             }
-            const configParseResult = parseJsonConfigFileContent(configObject, sys, getDirectoryPath(configFileName));
+            const configParseResult = parseJsonConfigFileContent(configObject, sys, getNormalizedAbsolutePath(getDirectoryPath(configFileName), sys.getCurrentDirectory()));
             if (configParseResult.errors.length > 0) {
                 reportDiagnostics(configParseResult.errors, /* compilerHost */ undefined);
                 sys.exit(ExitStatus.DiagnosticsPresent_OutputsSkipped);

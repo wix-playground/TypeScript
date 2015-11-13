@@ -251,6 +251,7 @@ namespace ts {
             type: {
                 "node": ModuleResolutionKind.NodeJs,
                 "classic": ModuleResolutionKind.Classic,
+                // name is lowercased so we can still use hasProperty(userValue.toLower()) to check if user has entered the right value
                 "baseurl": ModuleResolutionKind.BaseUrl,
             },
             description: Diagnostics.Specifies_module_resolution_strategy_Colon_node_Node_js_or_classic_TypeScript_pre_1_6,
@@ -288,10 +289,14 @@ namespace ts {
             description: Diagnostics.Base_directory_to_resolve_relative_module_names
         },
         {
+            // this option can only be specified in tsconfig.json
+            // use type = object to copy the value as-is
             name: "paths",
             type: "object"
         },
         {
+            // this option can only be specified in tsconfig.json
+            // use type = object to copy the value as-is
             name: "rootDirs",
             type: "object"
         }
@@ -481,7 +486,6 @@ namespace ts {
         return output;
     }
 
-
     /**
       * Parse the contents of a config file (tsconfig.json).
       * @param json The contents of the config file to parse
@@ -491,9 +495,8 @@ namespace ts {
       */
     export function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string): ParsedCommandLine {
         const { options, errors } = convertCompilerOptionsFromJson(json["compilerOptions"], basePath);
-        if (options && options.baseUrl === undefined) {
-            options.baseUrl = basePath;
-        }
+
+        options.inferredBaseUrl = basePath;
 
         return {
             options,

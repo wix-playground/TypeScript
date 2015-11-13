@@ -2124,6 +2124,8 @@ namespace ts {
 
         // Skip checking lib.d.ts to help speed up tests.
         /* @internal */ skipDefaultLibCheck?: boolean;
+        // inferred baseUrl - currently this will be set in 'parseJsonConfigFileContent' to 'baseDir'
+        /* @internal */ inferredBaseUrl?: string;
 
         [option: string]: string | number | boolean | PathSubstitutions | string[];
     }
