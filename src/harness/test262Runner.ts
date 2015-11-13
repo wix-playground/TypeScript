@@ -5,9 +5,10 @@
 class Test262BaselineRunner extends RunnerBase {
     private static basePath = "internal/cases/test262";
     private static helpersFilePath = "tests/cases/test262-harness/helpers.d.ts";
-    private static helperFile = {
+    private static helperFile: Harness.Compiler.TestFile = {
         unitName: Test262BaselineRunner.helpersFilePath,
-        content: Harness.IO.readFile(Test262BaselineRunner.helpersFilePath)
+        content: Harness.IO.readFile(Test262BaselineRunner.helpersFilePath),
+        path: ts.toPath(Test262BaselineRunner.helpersFilePath, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName)
     };
     private static testFileExtensionRegex = /\.js$/;
     private static options: ts.CompilerOptions = {
@@ -41,7 +42,12 @@ class Test262BaselineRunner extends RunnerBase {
                 const testCaseContent = Harness.TestCaseParser.makeUnitsFromTest(content, testFilename);
 
                 const inputFiles = testCaseContent.testUnitData.map(unit => {
-                    return { unitName: Test262BaselineRunner.getTestFilePath(unit.name), content: unit.content };
+                    const unitName = Test262BaselineRunner.getTestFilePath(unit.name);
+                    return { 
+                        unitName, 
+                        content: unit.content,
+                        path: ts.toPath(unitName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName)
+                     };
                 });
 
                 // Emit the results

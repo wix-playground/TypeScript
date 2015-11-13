@@ -2383,7 +2383,12 @@ namespace FourSlash {
     // here we cache the JS output and reuse it for every test.
     let fourslashJsOutput: string;
     {
-        const host = Harness.Compiler.createCompilerHost([{ unitName: Harness.Compiler.fourslashFileName, content: undefined }],
+        const fourslashFile: Harness.Compiler.TestFile = {
+            unitName: Harness.Compiler.fourslashFileName, 
+            content: undefined,
+            path: ts.toPath(Harness.Compiler.fourslashFileName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName)
+        };
+        const host = Harness.Compiler.createCompilerHost([fourslashFile],
             (fn, contents) => fourslashJsOutput = contents,
             ts.ScriptTarget.Latest,
             Harness.IO.useCaseSensitiveFileNames());
@@ -2401,11 +2406,19 @@ namespace FourSlash {
         currentTestState = new TestState(basePath, testType, testData);
 
         let result = "";
+        const fourslashFile: Harness.Compiler.TestFile = {
+            unitName: Harness.Compiler.fourslashFileName, 
+            content: undefined,
+            path: ts.toPath(Harness.Compiler.fourslashFileName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName) 
+        };
+        const testFile: Harness.Compiler.TestFile = {
+            unitName: fileName, 
+            content: content,
+            path: ts.toPath(fileName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName) 
+        };
+
         const host = Harness.Compiler.createCompilerHost(
-            [
-                { unitName: Harness.Compiler.fourslashFileName, content: undefined },
-                { unitName: fileName, content: content }
-            ],
+            [ fourslashFile, testFile ],
             (fn, contents) => result = contents,
             ts.ScriptTarget.Latest,
             Harness.IO.useCaseSensitiveFileNames());

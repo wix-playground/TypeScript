@@ -58,9 +58,9 @@ class CompilerBaselineRunner extends RunnerBase {
             let program: ts.Program;
             let options: ts.CompilerOptions;
             // equivalent to the files that will be passed on the command line
-            let toBeCompiled: { unitName: string; content: string }[];
+            let toBeCompiled: Harness.Compiler.TestFile[];
             // equivalent to other files on the file system not directly passed to the compiler (ie things that are referenced by other files)
-            let otherFiles: { unitName: string; content: string }[];
+            let otherFiles: Harness.Compiler.TestFile[];
             let harnessCompiler: Harness.Compiler.HarnessCompiler;
 
             before(() => {
@@ -78,16 +78,31 @@ class CompilerBaselineRunner extends RunnerBase {
                 toBeCompiled = [];
                 otherFiles = [];
                 if (/require\(/.test(lastUnit.content) || /reference\spath/.test(lastUnit.content)) {
-                    toBeCompiled.push({ unitName: rootDir + lastUnit.name, content: lastUnit.content });
+                    const unitName = ts.combinePaths(rootDir, lastUnit.name);
+                    toBeCompiled.push({
+                            unitName,
+                            path:ts.toPath(unitName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName),
+                            content: lastUnit.content
+                        });
                     units.forEach(unit => {
                         if (unit.name !== lastUnit.name) {
-                            otherFiles.push({ unitName: rootDir + unit.name, content: unit.content });
+                            const unitName = ts.combinePaths(rootDir, unit.name);
+                            otherFiles.push({
+                                unitName,
+                                path: ts.toPath(unitName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName),
+                                content: unit.content
+                            })
                         }
                     });
                 }
                 else {
                     toBeCompiled = units.map(unit => {
-                        return { unitName: rootDir + unit.name, content: unit.content };
+                        const unitName = ts.combinePaths(rootDir, unit.name);
+                        return {
+                            unitName,
+                            path: ts.toPath(unitName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName),
+                            content: unit.content
+                        };
                     });
                 }
 

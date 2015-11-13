@@ -27,8 +27,8 @@ namespace RWC {
 
     export function runRWCTest(jsonPath: string) {
         describe("Testing a RWC project: " + jsonPath, () => {
-            let inputFiles: { unitName: string; content: string; }[] = [];
-            let otherFiles: { unitName: string; content: string; }[] = [];
+            let inputFiles: Harness.Compiler.TestFile[] = [];
+            let otherFiles: Harness.Compiler.TestFile[] = [];
             let compilerResult: Harness.Compiler.CompilerResult;
             let compilerOptions: ts.CompilerOptions;
             let baselineOpts: Harness.Baseline.BaselineOptions = {
@@ -140,6 +140,7 @@ namespace RWC {
 
                 function getHarnessCompilerInputUnit(fileName: string) {
                     const unitName = ts.normalizeSlashes(Harness.IO.resolvePath(fileName));
+                    const path = ts.toPath(fileName, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName);
                     let content: string = null;
                     try {
                         content = Harness.IO.readFile(unitName);
@@ -147,7 +148,7 @@ namespace RWC {
                     catch (e) {
                         content = Harness.IO.readFile(fileName);
                     }
-                    return { unitName, content };
+                    return { unitName, content, path };
                 }
             });
 

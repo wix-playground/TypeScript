@@ -903,7 +903,7 @@ namespace Harness {
         }
 
         export function createCompilerHost(
-            inputFiles: { unitName: string; content: string; }[],
+            inputFiles: TestFile[],
             writeFile: (fn: string, contents: string, writeByteOrderMark: boolean) => void,
             scriptTarget: ts.ScriptTarget,
             useCaseSensitiveFileNames: boolean,
@@ -916,29 +916,29 @@ namespace Harness {
                 return useCaseSensitiveFileNames ? fileName : fileName.toLowerCase();
             }
 
-            const filemap: { [fileName: string]: ts.SourceFile; } = {};
+            const fileMap: ts.FileMap<ts.SourceFile> = ts.createFileMap<ts.SourceFile>();
             const getCurrentDirectory = currentDirectory === undefined ? Harness.IO.getCurrentDirectory : () => currentDirectory;
 
             // Register input files
-            function register(file: { unitName: string; content: string; }) {
+            function register(file: TestFile) {
                 if (file.content !== undefined) {
                     const fileName = ts.normalizePath(file.unitName);
                     const sourceFile = createSourceFileAndAssertInvariants(fileName, file.content, scriptTarget);
-                    filemap[getCanonicalFileName(fileName)] = sourceFile;
-                    filemap[getCanonicalFileName(ts.getNormalizedAbsolutePath(fileName, getCurrentDirectory()))] = sourceFile;
+                    fileMap.set(file.path, sourceFile);
                 }
             };
             inputFiles.forEach(register);
 
             function getSourceFile(fn: string, languageVersion: ts.ScriptTarget) {
                 fn = ts.normalizePath(fn);
-                if (Object.prototype.hasOwnProperty.call(filemap, getCanonicalFileName(fn))) {
-                    return filemap[getCanonicalFileName(fn)];
+                const path = ts.toPath(fn, getCurrentDirectory(), getCanonicalFileName);
+                if (fileMap.contains(path)) {
+                    return fileMap.get(path);
                 }
-                else if (currentDirectory) {
-                    const canonicalAbsolutePath = getCanonicalFileName(ts.getNormalizedAbsolutePath(fn, currentDirectory));
-                    return Object.prototype.hasOwnProperty.call(filemap, getCanonicalFileName(canonicalAbsolutePath)) ? filemap[canonicalAbsolutePath] : undefined;
-                }
+                // else if (currentDirectory) {
+                //     const canonicalAbsolutePath = getCanonicalFileName(ts.getNormalizedAbsolutePath(fn, currentDirectory));
+                //     return Object.prototype.hasOwnProperty.call(filemap, getCanonicalFileName(canonicalAbsolutePath)) ? filemap[canonicalAbsolutePath] : undefined;
+                // }
                 else if (fn === fourslashFileName) {
                     const tsFn = "tests/cases/fourslash/" + fourslashFileName;
                     fourslashSourceFile = fourslashSourceFile || createSourceFileAndAssertInvariants(tsFn, Harness.IO.readFile(tsFn), scriptTarget);
@@ -1034,8 +1034,14 @@ namespace Harness {
             }
         }
 
+        export interface TestFile {
+            unitName: string;
+            content: string;
+            path: ts.Path;
+        }
+
         export class HarnessCompiler {
-            private inputFiles: { unitName: string; content: string }[] = [];
+            private inputFiles: TestFile[] = [];
             private compileOptions: ts.CompilerOptions;
             private settings: Harness.TestCaseParser.CompilerSettings = {};
 
@@ -1055,11 +1061,11 @@ namespace Harness {
                 this.settings = tcSettings;
             }
 
-            public addInputFiles(files: { unitName: string; content: string }[]) {
+            public addInputFiles(files: TestFile[]) {
                 files.forEach(file => this.addInputFile(file));
             }
 
-            public addInputFile(file: { unitName: string; content: string }) {
+            public addInputFile(file: TestFile) {
                 this.inputFiles.push(file);
             }
 
@@ -1083,8 +1089,8 @@ namespace Harness {
                 }
             }
 
-            public compileFiles(inputFiles: { unitName: string; content: string }[],
-                otherFiles: { unitName: string; content: string }[],
+            public compileFiles(inputFiles: TestFile[],
+                otherFiles: TestFile[],
                 onComplete: (result: CompilerResult, program: ts.Program) => void,
                 settingsCallback?: (settings: ts.CompilerOptions) => void,
                 options?: ts.CompilerOptions & HarnessOptions,
@@ -1109,10 +1115,15 @@ namespace Harness {
 
                 // Files from built\local that are requested by test "@includeBuiltFiles" to be in the context.
                 // Treat them as library files, so include them in build, but not in baselines.
-                const includeBuiltFiles: { unitName: string; content: string }[] = [];
+                const includeBuiltFiles: TestFile[] = [];
                 if (options.includeBuiltFile) {
                     const builtFileName = libFolder + options.includeBuiltFile;
-                    includeBuiltFiles.push({ unitName: builtFileName, content: normalizeLineEndings(IO.readFile(builtFileName), newLine) });
+                    let builtFile: TestFile = {
+                        unitName: builtFileName,
+                        content: normalizeLineEndings(IO.readFile(builtFileName), newLine),
+                        path: ts.toPath(builtFileName, IO.getCurrentDirectory(), getCanonicalFileName)
+                    }
+                    includeBuiltFiles.push(builtFile);
                 }
 
                 const useCaseSensitiveFileNames = options.useCaseSensitiveFileNames !== undefined ? options.useCaseSensitiveFileNames : Harness.IO.useCaseSensitiveFileNames();
@@ -1138,8 +1149,8 @@ namespace Harness {
                 return options;
             }
 
-            public compileDeclarationFiles(inputFiles: { unitName: string; content: string; }[],
-                otherFiles: { unitName: string; content: string; }[],
+            public compileDeclarationFiles(inputFiles: TestFile[],
+                otherFiles: TestFile[],
                 result: CompilerResult,
                 settingsCallback?: (settings: ts.CompilerOptions) => void,
                 options?: ts.CompilerOptions,
@@ -1149,8 +1160,8 @@ namespace Harness {
                     throw new Error("There were no errors and declFiles generated did not match number of js files generated");
                 }
 
-                const declInputFiles: { unitName: string; content: string }[] = [];
-                const declOtherFiles: { unitName: string; content: string }[] = [];
+                const declInputFiles: TestFile[] = [];
+                const declOtherFiles: TestFile[] = [];
                 let declResult: Harness.Compiler.CompilerResult;
 
                 // if the .d.ts is non-empty, confirm it compiles correctly as well
@@ -1163,14 +1174,19 @@ namespace Harness {
                     return { declInputFiles, declOtherFiles, declResult };
                 }
 
-                function addDtsFile(file: { unitName: string; content: string }, dtsFiles: { unitName: string; content: string }[]) {
+                function addDtsFile(file: TestFile, dtsFiles: TestFile[]) {
                     if (isDTS(file.unitName)) {
                         dtsFiles.push(file);
                     }
                     else if (isTS(file.unitName)) {
                         const declFile = findResultCodeFile(file.unitName);
                         if (declFile && !findUnit(declFile.fileName, declInputFiles) && !findUnit(declFile.fileName, declOtherFiles)) {
-                            dtsFiles.push({ unitName: declFile.fileName, content: declFile.code });
+                            const dtsFile: TestFile = {
+                                unitName: declFile.fileName,
+                                path: ts.toPath(declFile.fileName, IO.getCurrentDirectory(), getCanonicalFileName),
+                                content: declFile.code
+                            }
+                            dtsFiles.push(dtsFile);
                         }
                     }
 
@@ -1711,11 +1727,12 @@ namespace Harness {
         return filePath.indexOf(Harness.libFolder) === 0;
     }
 
-    export function getDefaultLibraryFile(io: Harness.IO): { unitName: string, content: string } {
+    export function getDefaultLibraryFile(io: Harness.IO): Harness.Compiler.TestFile {
         const libFile = Harness.userSpecifiedRoot + Harness.libFolder + "lib.d.ts";
         return {
             unitName: libFile,
-            content: io.readFile(libFile)
+            content: io.readFile(libFile),
+            path: ts.toPath(libFile, Harness.IO.getCurrentDirectory(), Harness.Compiler.getCanonicalFileName)
         };
     }
 
