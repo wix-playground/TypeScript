@@ -437,6 +437,7 @@ namespace ts {
     namespace Parser {
         // Share a single scanner across all calls to parse a source file.  This helps speed things
         // up by avoiding the cost of creating/compiling scanners over and over again.
+        import ModifiersArray = ts.ModifiersArray;
         const scanner = createScanner(ScriptTarget.Latest, /*skipTrivia*/ true);
         const disallowInAndDecoratorContext = ParserContextFlags.DisallowIn | ParserContextFlags.Decorator;
 
@@ -2375,6 +2376,15 @@ namespace ts {
             return token === SyntaxKind.DotToken ? undefined : node;
         }
 
+        function parsePartialType(): TypeNode {
+            const modifierToken = createNode(token);
+            nextToken();
+            const node = parseIntersectionTypeOrHigher();
+            node.modifiers = node.modifiers || <ModifiersArray>[];
+            node.modifiers.push(finishNode(modifierToken));
+            return finishNode(node);
+        }
+
         function parseNonArrayType(): TypeNode {
             switch (token) {
                 case SyntaxKind.AnyKeyword:
@@ -2398,6 +2408,8 @@ namespace ts {
                     return parseTupleType();
                 case SyntaxKind.OpenParenToken:
                     return parseParenthesizedType();
+                case SyntaxKind.PartialKeyword:
+                    return parsePartialType();
                 default:
                     return parseTypeReferenceOrTypePredicate();
             }
@@ -3220,7 +3232,7 @@ namespace ts {
 
         /**
          * Parse ES7 unary expression and await expression
-         * 
+         *
          * ES7 UnaryExpression:
          *      1) SimpleUnaryExpression[?yield]
          *      2) IncrementExpression[?yield] ** UnaryExpression[?yield]
@@ -5018,8 +5030,8 @@ namespace ts {
             // implements is a future reserved word so
             // 'class implements' might mean either
             // - class expression with omitted name, 'implements' starts heritage clause
-            // - class with name 'implements' 
-            // 'isImplementsClause' helps to disambiguate between these two cases 
+            // - class with name 'implements'
+            // 'isImplementsClause' helps to disambiguate between these two cases
             return isIdentifier() && !isImplementsClause()
                 ? parseIdentifier()
                 : undefined;

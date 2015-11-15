@@ -1,0 +1,16 @@
+=== tests/cases/compiler/partialTypes.ts ===
+interface A {
+>A : Symbol(A, Decl(partialTypes.ts, 0, 0))
+
+    prop1: string;
+>prop1 : Symbol(prop1, Decl(partialTypes.ts, 0, 13))
+
+    prop2: boolean;
+>prop2 : Symbol(prop2, Decl(partialTypes.ts, 1, 18))
+}
+
+const a: partial A = { prop1: 'p' };
+>a : Symbol(a, Decl(partialTypes.ts, 5, 5))
+>A : Symbol(A, Decl(partialTypes.ts, 0, 0))
+>prop1 : Symbol(prop1, Decl(partialTypes.ts, 5, 22))
+

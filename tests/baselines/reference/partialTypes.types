@@ -1,0 +1,18 @@
+=== tests/cases/compiler/partialTypes.ts ===
+interface A {
+>A : A
+
+    prop1: string;
+>prop1 : string
+
+    prop2: boolean;
+>prop2 : boolean
+}
+
+const a: partial A = { prop1: 'p' };
+>a : A
+>A : A
+>{ prop1: 'p' } : { prop1: string; }
+>prop1 : string
+>'p' : string
+

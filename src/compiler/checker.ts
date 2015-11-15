@@ -497,7 +497,7 @@ namespace ts {
                             }
 
                             // Because of module/namespace merging, a module's exports are in scope,
-                            // yet we never want to treat an export specifier as putting a member in scope. 
+                            // yet we never want to treat an export specifier as putting a member in scope.
                             // Therefore, if the name we find is purely an export specifier, it is not actually considered in scope.
                             // Two things to note about this:
                             //     1. We have to check this without calling getSymbol. The problem with calling getSymbol
@@ -2626,6 +2626,10 @@ namespace ts {
                     return unknownType;
                 }
                 let type = getWidenedTypeForVariableLikeDeclaration(<VariableLikeDeclaration>declaration, /*reportErrors*/ true);
+                const typeModifiers = (<VariableLikeDeclaration>declaration).type && (<VariableLikeDeclaration>declaration).type.modifiers;
+                if (typeModifiers && typeModifiers.some(modifier => modifier.kind === SyntaxKind.PartialKeyword)) {
+                     type.flags |= TypeFlags.PartialType;
+                }
                 if (!popTypeResolution()) {
                     if ((<VariableLikeDeclaration>symbol.valueDeclaration).type) {
                         // Variable has type annotation that circularly references the variable itself
@@ -5264,7 +5268,7 @@ namespace ts {
                 for (const targetProp of properties) {
                     const sourceProp = getPropertyOfType(source, targetProp.name);
 
-                    if (sourceProp !== targetProp) {
+                    if (sourceProp !== targetProp && !(target.flags & TypeFlags.PartialType)) {
                         if (!sourceProp) {
                             if (!(targetProp.flags & SymbolFlags.Optional) || requireOptionalProperties) {
                                 if (reportErrors) {
@@ -10164,7 +10168,7 @@ namespace ts {
                             checkDestructuringAssignment(<ShorthandPropertyAssignment>p, type);
                         }
                         else {
-                            // non-shorthand property assignments should always have initializers 
+                            // non-shorthand property assignments should always have initializers
                             checkDestructuringAssignment((<PropertyAssignment>p).initializer, type);
                         }
                     }

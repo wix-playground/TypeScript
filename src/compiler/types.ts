@@ -334,6 +334,7 @@ namespace ts {
         JSDocReturnTag,
         JSDocTypeTag,
         JSDocTemplateTag,
+        PartialKeyword,
 
         // Synthesized list
         SyntaxList,
@@ -1826,6 +1827,7 @@ namespace ts {
         ESSymbol                = 0x01000000,  // Type of symbol primitive introduced in ES6
         ThisType                = 0x02000000,  // This type
         ObjectLiteralPatternWithComputedProperties = 0x04000000,  // Object literal type implied by binding pattern has computed properties
+        PartialType             = 0x08000000,
 
         /* @internal */
         Intrinsic = Any | String | Number | Boolean | ESSymbol | Void | Undefined | Null,
@@ -2341,7 +2343,7 @@ namespace ts {
     export interface ModuleResolutionHost {
         fileExists(fileName: string): boolean;
         // readFile function is used to read arbitrary text files on disk, i.e. when resolution procedure needs the content of 'package.json'
-        // to determine location of bundled typings for node module 
+        // to determine location of bundled typings for node module
         readFile(fileName: string): string;
     }
 
@@ -2349,7 +2351,7 @@ namespace ts {
         resolvedFileName: string;
         /*
          * Denotes if 'resolvedFileName' is isExternalLibraryImport and thus should be proper external module:
-         * - be a .d.ts file 
+         * - be a .d.ts file
          * - use top level imports\exports
          * - don't use tripleslash references
          */
@@ -2372,11 +2374,11 @@ namespace ts {
         getNewLine(): string;
 
         /*
-         * CompilerHost must either implement resolveModuleNames (in case if it wants to be completely in charge of 
-         * module name resolution) or provide implementation for methods from ModuleResolutionHost (in this case compiler 
+         * CompilerHost must either implement resolveModuleNames (in case if it wants to be completely in charge of
+         * module name resolution) or provide implementation for methods from ModuleResolutionHost (in this case compiler
          * will appply built-in module resolution logic and use members of ModuleResolutionHost to ask host specific questions).
-         * If resolveModuleNames is implemented then implementation for members from ModuleResolutionHost can be just 
-         * 'throw new Error("NotImplemented")'  
+         * If resolveModuleNames is implemented then implementation for members from ModuleResolutionHost can be just
+         * 'throw new Error("NotImplemented")'
          */
         resolveModuleNames?(moduleNames: string[], containingFile: string): ResolvedModule[];
     }

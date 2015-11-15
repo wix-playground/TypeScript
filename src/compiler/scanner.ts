@@ -90,6 +90,7 @@ namespace ts {
         "null": SyntaxKind.NullKeyword,
         "number": SyntaxKind.NumberKeyword,
         "package": SyntaxKind.PackageKeyword,
+        "partial": SyntaxKind.PartialKeyword,
         "private": SyntaxKind.PrivateKeyword,
         "protected": SyntaxKind.ProtectedKeyword,
         "public": SyntaxKind.PublicKeyword,
@@ -567,12 +568,12 @@ namespace ts {
     }
 
     /**
-     * Extract comments from text prefixing the token closest following `pos`. 
+     * Extract comments from text prefixing the token closest following `pos`.
      * The return value is an array containing a TextRange for each comment.
      * Single-line comment ranges include the beginning '//' characters but not the ending line break.
      * Multi - line comment ranges include the beginning '/* and ending '<asterisk>/' characters.
      * The return value is undefined if no comments were found.
-     * @param trailing 
+     * @param trailing
      * If false, whitespace is skipped until the first line break and comments between that location
      * and the next token are returned.
      * If true, comments occurring between the given position and the next line break are returned.
