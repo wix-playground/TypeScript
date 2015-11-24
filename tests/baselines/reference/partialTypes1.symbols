@@ -1,0 +1,39 @@
+=== tests/cases/compiler/partialTypes1.ts ===
+// All these expressions should be valid
+interface A {
+>A : Symbol(A, Decl(partialTypes1.ts, 0, 0))
+
+    prop1: string;
+>prop1 : Symbol(prop1, Decl(partialTypes1.ts, 1, 13))
+
+    prop2: boolean;
+>prop2 : Symbol(prop2, Decl(partialTypes1.ts, 2, 18))
+}
+
+function test(_x: partial A) {
+>test : Symbol(test, Decl(partialTypes1.ts, 4, 1))
+>_x : Symbol(_x, Decl(partialTypes1.ts, 6, 14))
+>A : Symbol(A, Decl(partialTypes1.ts, 0, 0))
+}
+
+let a: A;
+>a : Symbol(a, Decl(partialTypes1.ts, 9, 3))
+>A : Symbol(A, Decl(partialTypes1.ts, 0, 0))
+
+let _a: partial A = { prop1: 'p' };
+>_a : Symbol(_a, Decl(partialTypes1.ts, 10, 3))
+>A : Symbol(A, Decl(partialTypes1.ts, 0, 0))
+>prop1 : Symbol(prop1, Decl(partialTypes1.ts, 10, 21))
+
+_a = a;
+>_a : Symbol(_a, Decl(partialTypes1.ts, 10, 3))
+>a : Symbol(a, Decl(partialTypes1.ts, 9, 3))
+
+test(a);
+>test : Symbol(test, Decl(partialTypes1.ts, 4, 1))
+>a : Symbol(a, Decl(partialTypes1.ts, 9, 3))
+
+test(_a);
+>test : Symbol(test, Decl(partialTypes1.ts, 4, 1))
+>_a : Symbol(_a, Decl(partialTypes1.ts, 10, 3))
+

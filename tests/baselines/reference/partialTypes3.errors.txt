@@ -1,0 +1,17 @@
+tests/cases/compiler/partialTypes3.ts(11,1): error TS2322: Type 'partial A' is not assignable to type 'A'.
+
+
+==== tests/cases/compiler/partialTypes3.ts (1 errors) ====
+    // Should fail
+    
+    interface A {
+        prop1: string;
+        prop2: boolean;
+    }
+    
+    let _a: partial A;
+    let a: A;
+    
+    a = _a;
+    ~
+!!! error TS2322: Type 'partial A' is not assignable to type 'A'.

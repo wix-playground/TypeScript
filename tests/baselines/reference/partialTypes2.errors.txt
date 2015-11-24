@@ -1,0 +1,43 @@
+tests/cases/compiler/partialTypes2.ts(12,1): error TS2322: Type '{ prop1: string; prop2: string; }' is not assignable to type 'partial A'.
+  Types of property 'prop2' are incompatible.
+    Type 'string' is not assignable to type 'boolean'.
+tests/cases/compiler/partialTypes2.ts(13,20): error TS2322: Type '{ prop1: string; prop3: string; }' is not assignable to type 'partial A'.
+  Object literal may only specify known properties, and 'prop3' does not exist in type 'partial A'.
+tests/cases/compiler/partialTypes2.ts(14,6): error TS2345: Argument of type '{ prop1: string; prop2: string; }' is not assignable to parameter of type 'partial A'.
+  Types of property 'prop2' are incompatible.
+    Type 'string' is not assignable to type 'boolean'.
+tests/cases/compiler/partialTypes2.ts(15,20): error TS2345: Argument of type '{ prop1: string; prop3: string; }' is not assignable to parameter of type 'partial A'.
+  Object literal may only specify known properties, and 'prop3' does not exist in type 'partial A'.
+
+
+==== tests/cases/compiler/partialTypes2.ts (4 errors) ====
+    // These expressions should fail
+    interface A {
+        prop1: string;
+        prop2: boolean;
+    }
+    
+    function test(a: partial A) {}
+    
+    let _a: partial A;
+    let a: A;
+    
+    _a = { prop1: "A", prop2: "INVALID"};
+    ~~
+!!! error TS2322: Type '{ prop1: string; prop2: string; }' is not assignable to type 'partial A'.
+!!! error TS2322:   Types of property 'prop2' are incompatible.
+!!! error TS2322:     Type 'string' is not assignable to type 'boolean'.
+    _a = { prop1: "A", prop3: "SHOULDN'T BE HERE"};
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~
+!!! error TS2322: Type '{ prop1: string; prop3: string; }' is not assignable to type 'partial A'.
+!!! error TS2322:   Object literal may only specify known properties, and 'prop3' does not exist in type 'partial A'.
+    test({ prop1: "A", prop2: "INVALID"});
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!!! error TS2345: Argument of type '{ prop1: string; prop2: string; }' is not assignable to parameter of type 'partial A'.
+!!! error TS2345:   Types of property 'prop2' are incompatible.
+!!! error TS2345:     Type 'string' is not assignable to type 'boolean'.
+    test({ prop1: "A", prop3: "SHOULDN'T BE HERE"});
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~
+!!! error TS2345: Argument of type '{ prop1: string; prop3: string; }' is not assignable to parameter of type 'partial A'.
+!!! error TS2345:   Object literal may only specify known properties, and 'prop3' does not exist in type 'partial A'.
+    

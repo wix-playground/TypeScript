@@ -1,6 +1,11 @@
+// Should fail
+
 interface A {
     prop1: string;
     prop2: boolean;
 }
 
-const a: partial A = { prop1: 'p' };
+let _a: partial A;
+let a: A;
+
+a = _a;

@@ -1631,6 +1631,10 @@ namespace ts {
                 return writeType(type, globalFlags);
 
                 function writeType(type: Type, flags: TypeFormatFlags) {
+                    if (type.flags & TypeFlags.PartialType) {
+                        writer.writeKeyword("partial");
+                        writer.writeSpace(" ");
+                    }
                     // Write undefined/null type as any
                     if (type.flags & TypeFlags.Intrinsic) {
                         // Special handling for unknown / resolving types, they should show up as any and not unknown or __resolving
@@ -2563,6 +2567,13 @@ namespace ts {
                 : getTypeFromArrayBindingPattern(pattern, includePatternInType);
         }
 
+        function getPartialType(targetType: Type): Type {
+            const partialType: PartialType = <PartialType>createType(TypeFlags.PartialType | TypeFlags.ObjectType);
+            partialType.target = targetType;
+            partialType.symbol = targetType.symbol;
+            return partialType;
+        }
+
         // Return the type associated with a variable, parameter, or property declaration. In the simple case this is the type
         // specified in a type annotation or inferred from an initializer. However, in the case of a destructuring declaration it
         // is a bit more involved. For example:
@@ -2625,10 +2636,12 @@ namespace ts {
                 if (!pushTypeResolution(symbol, TypeSystemPropertyName.Type)) {
                     return unknownType;
                 }
-                let type = getWidenedTypeForVariableLikeDeclaration(<VariableLikeDeclaration>declaration, /*reportErrors*/ true);
-                const typeModifiers = (<VariableLikeDeclaration>declaration).type && (<VariableLikeDeclaration>declaration).type.modifiers;
-                if (typeModifiers && typeModifiers.some(modifier => modifier.kind === SyntaxKind.PartialKeyword)) {
-                     type.flags |= TypeFlags.PartialType;
+
+                const varDeclaration = <VariableLikeDeclaration>declaration;
+                let type = getWidenedTypeForVariableLikeDeclaration(varDeclaration, /*reportErrors*/ true);
+
+                if (varDeclaration.type && varDeclaration.type.flags & NodeFlags.Partial) {
+                    return links.type = getPartialType(type);
                 }
                 if (!popTypeResolution()) {
                     if ((<VariableLikeDeclaration>symbol.valueDeclaration).type) {
@@ -4936,6 +4949,12 @@ namespace ts {
                     if (isTypeAny(source)) return Ternary.True;
                     if (source === numberType && target.flags & TypeFlags.Enum) return Ternary.True;
                 }
+                if (source.flags & TypeFlags.PartialType && (<any>source)["target"] === target && !(target.flags & TypeFlags.PartialType)) {
+                    if (reportErrors) {
+                        reportRelationError(headMessage, source, target);
+                    }
+                    return Ternary.False;
+                }
 
                 if (source.flags & TypeFlags.FreshObjectLiteral) {
                     if (hasExcessProperties(<FreshObjectLiteralType>source, target, reportErrors)) {
@@ -5268,13 +5287,15 @@ namespace ts {
                 for (const targetProp of properties) {
                     const sourceProp = getPropertyOfType(source, targetProp.name);
 
-                    if (sourceProp !== targetProp && !(target.flags & TypeFlags.PartialType)) {
+                    if (sourceProp !== targetProp) {
                         if (!sourceProp) {
-                            if (!(targetProp.flags & SymbolFlags.Optional) || requireOptionalProperties) {
-                                if (reportErrors) {
-                                    reportError(Diagnostics.Property_0_is_missing_in_type_1, symbolToString(targetProp), typeToString(source));
+                            if (!(target.flags & TypeFlags.PartialType)) {
+                                if (!(targetProp.flags & SymbolFlags.Optional) || requireOptionalProperties) {
+                                    if (reportErrors) {
+                                        reportError(Diagnostics.Property_0_is_missing_in_type_1, symbolToString(targetProp), typeToString(source));
+                                    }
+                                    return Ternary.False;
                                 }
-                                return Ternary.False;
                             }
                         }
                         else if (!(targetProp.flags & SymbolFlags.Prototype)) {

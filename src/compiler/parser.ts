@@ -2377,12 +2377,10 @@ namespace ts {
         }
 
         function parsePartialType(): TypeNode {
-            const modifierToken = createNode(token);
             nextToken();
             const node = parseIntersectionTypeOrHigher();
-            node.modifiers = node.modifiers || <ModifiersArray>[];
-            node.modifiers.push(finishNode(modifierToken));
-            return finishNode(node);
+            node.flags |= NodeFlags.Partial;
+            return node;
         }
 
         function parseNonArrayType(): TypeNode {

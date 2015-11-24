@@ -1,0 +1,44 @@
+=== tests/cases/compiler/partialTypes1.ts ===
+// All these expressions should be valid
+interface A {
+>A : A
+
+    prop1: string;
+>prop1 : string
+
+    prop2: boolean;
+>prop2 : boolean
+}
+
+function test(_x: partial A) {
+>test : (_x: partial A) => void
+>_x : partial A
+>A : A
+}
+
+let a: A;
+>a : A
+>A : A
+
+let _a: partial A = { prop1: 'p' };
+>_a : partial A
+>A : A
+>{ prop1: 'p' } : { prop1: string; }
+>prop1 : string
+>'p' : string
+
+_a = a;
+>_a = a : A
+>_a : partial A
+>a : A
+
+test(a);
+>test(a) : void
+>test : (_x: partial A) => void
+>a : A
+
+test(_a);
+>test(_a) : void
+>test : (_x: partial A) => void
+>_a : partial A
+
